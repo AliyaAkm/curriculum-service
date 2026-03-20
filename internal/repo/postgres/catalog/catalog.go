@@ -2,11 +2,10 @@ package postgres
 
 import (
 	"context"
+	"curriculum-service/internal/domain/category"
 	"fmt"
 	"strings"
 	"time"
-
-	"curriculum-service/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -19,7 +18,7 @@ func NewCatalogRepo(pool *pgxpool.Pool) *CatalogRepo {
 	return &CatalogRepo{pool: pool}
 }
 
-func (r *CatalogRepo) SearchCourses(ctx context.Context, filter domain.CourseSearchFilter) ([]domain.CourseCard, int, error) {
+func (r *CatalogRepo) SearchCourses(ctx context.Context, filter category.CourseSearchFilter) ([]category.CourseCard, int, error) {
 	builder := newCourseQueryBuilder(filter)
 	countWhereSQL := builder.whereSQL()
 	if builder.exactQuery != "" && builder.prefixQuery != "" {
@@ -99,10 +98,10 @@ LIMIT %s OFFSET %s
 	}
 	defer rows.Close()
 
-	items := make([]domain.CourseCard, 0, filter.PageSize)
+	items := make([]category.CourseCard, 0, filter.PageSize)
 	for rows.Next() {
 		var (
-			item             domain.CourseCard
+			item             category.CourseCard
 			status           string
 			level            string
 			durationCategory string
@@ -137,9 +136,9 @@ LIMIT %s OFFSET %s
 			return nil, 0, err
 		}
 
-		item.Status = domain.CourseStatus(status)
-		item.Level = domain.CourseLevel(level)
-		item.DurationCategory = domain.DurationCategory(durationCategory)
+		item.Status = category.CourseStatus(status)
+		item.Level = category.CourseLevel(level)
+		item.DurationCategory = category.DurationCategory(durationCategory)
 		item.TopicSlugs = topicSlugs
 		item.TopicNames = topicNames
 		item.Tags = tags
@@ -155,28 +154,28 @@ LIMIT %s OFFSET %s
 	return items, total, nil
 }
 
-func (r *CatalogRepo) GetFilterOptions(ctx context.Context, locale domain.Locale) (domain.FilterOptions, error) {
+func (r *CatalogRepo) GetFilterOptions(ctx context.Context, locale category.Locale) (category.FilterOptions, error) {
 	topics, err := r.listTopicOptions(ctx, locale)
 	if err != nil {
-		return domain.FilterOptions{}, err
+		return category.FilterOptions{}, err
 	}
 
 	levels, err := r.listLevelOptions(ctx)
 	if err != nil {
-		return domain.FilterOptions{}, err
+		return category.FilterOptions{}, err
 	}
 
 	durations, err := r.listDurationOptions(ctx)
 	if err != nil {
-		return domain.FilterOptions{}, err
+		return category.FilterOptions{}, err
 	}
 
 	certificateAvailable, err := r.listCertificateAvailability(ctx)
 	if err != nil {
-		return domain.FilterOptions{}, err
+		return category.FilterOptions{}, err
 	}
 
-	return domain.FilterOptions{
+	return category.FilterOptions{
 		Topics:               topics,
 		Levels:               levels,
 		Durations:            durations,
@@ -184,7 +183,7 @@ func (r *CatalogRepo) GetFilterOptions(ctx context.Context, locale domain.Locale
 	}, nil
 }
 
-func (r *CatalogRepo) listTopicOptions(ctx context.Context, locale domain.Locale) ([]domain.TopicFilterOption, error) {
+func (r *CatalogRepo) listTopicOptions(ctx context.Context, locale category.Locale) ([]category.TopicFilterOption, error) {
 	const query = `
 SELECT
 	t.slug,
@@ -205,9 +204,9 @@ ORDER BY LOWER(COALESCE(tl.name, t.slug))
 	}
 	defer rows.Close()
 
-	items := make([]domain.TopicFilterOption, 0)
+	items := make([]category.TopicFilterOption, 0)
 	for rows.Next() {
-		var item domain.TopicFilterOption
+		var item category.TopicFilterOption
 		if err := rows.Scan(&item.Slug, &item.Name, &item.CoursesCount); err != nil {
 			return nil, err
 		}
@@ -221,7 +220,7 @@ ORDER BY LOWER(COALESCE(tl.name, t.slug))
 	return items, nil
 }
 
-func (r *CatalogRepo) listLevelOptions(ctx context.Context) ([]domain.FilterValueOption, error) {
+func (r *CatalogRepo) listLevelOptions(ctx context.Context) ([]category.FilterValueOption, error) {
 	const query = `
 SELECT level, COUNT(*)
 FROM courses
@@ -235,9 +234,9 @@ GROUP BY level
 	}
 	defer rows.Close()
 
-	items := make([]domain.FilterValueOption, 0)
+	items := make([]category.FilterValueOption, 0)
 	for rows.Next() {
-		var item domain.FilterValueOption
+		var item category.FilterValueOption
 		if err := rows.Scan(&item.Value, &item.CoursesCount); err != nil {
 			return nil, err
 		}
@@ -251,7 +250,7 @@ GROUP BY level
 	return items, nil
 }
 
-func (r *CatalogRepo) listDurationOptions(ctx context.Context) ([]domain.FilterValueOption, error) {
+func (r *CatalogRepo) listDurationOptions(ctx context.Context) ([]category.FilterValueOption, error) {
 	const query = `
 SELECT duration_category, COUNT(*)
 FROM courses
@@ -265,9 +264,9 @@ GROUP BY duration_category
 	}
 	defer rows.Close()
 
-	items := make([]domain.FilterValueOption, 0)
+	items := make([]category.FilterValueOption, 0)
 	for rows.Next() {
-		var item domain.FilterValueOption
+		var item category.FilterValueOption
 		if err := rows.Scan(&item.Value, &item.CoursesCount); err != nil {
 			return nil, err
 		}
@@ -307,7 +306,7 @@ type courseQueryBuilder struct {
 	likeQuery   string
 }
 
-func newCourseQueryBuilder(filter domain.CourseSearchFilter) *courseQueryBuilder {
+func newCourseQueryBuilder(filter category.CourseSearchFilter) *courseQueryBuilder {
 	builder := &courseQueryBuilder{
 		args:       []any{string(filter.Locale)},
 		conditions: []string{"c.status = 'published'"},
@@ -417,7 +416,7 @@ cl.title ASC
 `, b.exactQuery, b.prefixQuery, b.likeQuery)
 }
 
-func levelsToStrings(levels []domain.CourseLevel) []string {
+func levelsToStrings(levels []category.CourseLevel) []string {
 	items := make([]string, 0, len(levels))
 	for _, level := range levels {
 		items = append(items, string(level))
@@ -425,7 +424,7 @@ func levelsToStrings(levels []domain.CourseLevel) []string {
 	return items
 }
 
-func durationsToStrings(durations []domain.DurationCategory) []string {
+func durationsToStrings(durations []category.DurationCategory) []string {
 	items := make([]string, 0, len(durations))
 	for _, duration := range durations {
 		items = append(items, string(duration))

@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	statushandler "curriculum-service/internal/http/handlers/status"
+	"curriculum-service/internal/repo/postgres/catalog"
+	statusrepo "curriculum-service/internal/repo/postgres/status"
+	statususecase "curriculum-service/internal/usecase/status"
 	"errors"
 	"log"
 	"net/http"
@@ -9,11 +13,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"curriculum-service/internal/config"
 	"curriculum-service/internal/http/handlers"
 	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/router"
-	"curriculum-service/internal/repo/postgres"
 	"curriculum-service/internal/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -21,9 +23,9 @@ import (
 )
 
 func main() {
-	_ = godotenv.Load(".env")
+	err := godotenv.Load(".env")
 
-	cfg, err := config.ReadEnv()
+	cfg, err := ReadEnv()
 	if err != nil {
 		log.Fatal("configuration error:", err)
 	}
@@ -31,26 +33,37 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	pool, err := postgres.NewPool(
+	pool, err := NewPool(
 		ctx,
-		cfg.DatabaseURL(),
-		cfg.DB.MaxConns,
-		cfg.DB.MinConns,
-		cfg.DB.MaxConnLifetime,
-		cfg.DB.HealthCheckPeriod,
+		cfg.DB,
 	)
 	if err != nil {
 		log.Fatal("error connecting to the database:", err)
 	}
 	defer pool.Close()
 
-	catalogRepo := postgres.NewCatalogRepo(pool)
+	db, err := NewDB(ctx, cfg.DB)
+	if err != nil {
+		log.Fatal("error connecting to the database: ", err)
+	}
+
+	catalogRepo := catalog.NewRepo(pool)
 	catalogUC := usecase.NewCatalog(catalogRepo)
-	catalogH := handlers.NewCatalogHandler(catalogUC)
+	catalogHandler := handlers.NewCatalogHandler(catalogUC)
+
+	// status courses
+	statusRepo := statusrepo.NewRepo(db)
+	statusUseCase := statususecase.New(statusRepo)
+	statusHandler := statushandler.NewHandler(statusUseCase)
+
+	handler := router.Handler{
+		Catalog: catalogHandler,
+		Status:  statusHandler,
+	}
+
 	engine := router.New(
-		catalogH,
+		handler,
 		[]gin.HandlerFunc{
-			middleware.CORS(cfg.CORS.AllowedOrigins, cfg.CORS.AllowedMethods, cfg.CORS.AllowedHeaders),
 			middleware.RequestID(),
 			middleware.Logger(),
 			middleware.Recover(),
