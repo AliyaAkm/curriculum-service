@@ -1,0 +1,6 @@
+.env
+.gocache/
+.gomodcache/
+.gopath/
+/curriculum-service.exe
+/coverage.out
