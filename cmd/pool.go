@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,11 +12,7 @@ func NewPool(
 	ctx context.Context,
 	dbConfig DBConfig,
 ) (*pgxpool.Pool, error) {
-	url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.DBName, dbConfig.SSLMode,
-	)
-
-	cfg, err := pgxpool.ParseConfig(url)
+	cfg, err := pgxpool.ParseConfig(dbConfig.DatabaseURL())
 	if err != nil {
 		return nil, err
 	}
@@ -34,18 +29,7 @@ func NewDB(
 	ctx context.Context,
 	dbConfig DBConfig,
 ) (*gorm.DB, error) {
-
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
-		dbConfig.Host,
-		dbConfig.User,
-		dbConfig.Password,
-		dbConfig.DBName,
-		dbConfig.Port,
-		dbConfig.SSLMode,
-	)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dbConfig.DatabaseURL()), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

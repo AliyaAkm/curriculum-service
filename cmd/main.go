@@ -71,13 +71,13 @@ func main() {
 	)
 
 	srv := &http.Server{
-		Addr:              cfg.HTTPAddr,
+		Addr:              cfg.ListenAddr(),
 		Handler:           engine,
 		ReadHeaderTimeout: cfg.HTTP.ReadHeaderTimeout,
 	}
 
 	go func() {
-		log.Println("curriculum-service started on", cfg.HTTPAddr)
+		log.Println("curriculum-service started on", cfg.ListenAddr())
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Println("server error:", err)
 		}
