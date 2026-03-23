@@ -1,7 +1,13 @@
-package domain
+package status
+
+import "github.com/google/uuid"
 
 type Status struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Code string `json:"code"`
+	ID   uuid.UUID `gorm:"column:id;primary_key"`
+	Name string    `gorm:"column:name"`
+	Code string    `gorm:"column:code"`
+}
+
+func (Status) TableName() string {
+	return "course_statuses"
 }

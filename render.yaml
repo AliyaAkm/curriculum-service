@@ -1,0 +1,37 @@
+databases:
+  - name: curriculum-db
+    plan: starter
+
+services:
+  - type: pserv
+    name: curriculum-service
+    runtime: go
+    plan: starter
+    autoDeployTrigger: commit
+    buildCommand: go build -o bin/curriculum ./cmd
+    startCommand: ./bin/curriculum
+    envVars:
+      - key: HTTP_ADDR
+        value: :8083
+      - key: HTTP_READ_HEADER_TIMEOUT
+        value: 5s
+      - key: HTTP_SHUTDOWN_TIMEOUT
+        value: 5s
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*"
+      - key: CORS_ALLOWED_METHODS
+        value: GET,OPTIONS
+      - key: CORS_ALLOWED_HEADERS
+        value: Authorization,Content-Type,Accept,Origin,X-Request-ID
+      - key: DB_URL
+        fromDatabase:
+          name: curriculum-db
+          property: connectionString
+      - key: DB_MAX_CONNS
+        value: "10"
+      - key: DB_MIN_CONNS
+        value: "2"
+      - key: DB_MAX_CONN_LIFETIME
+        value: 30m
+      - key: DB_HEALTH_CHECK_PERIOD
+        value: 1m

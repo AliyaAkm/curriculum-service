@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"curriculum-service/internal/domain/category"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,22 +25,23 @@ func NewCatalogHandler(uc *usecase.Catalog) *CatalogHandler {
 
 func (h *CatalogHandler) ListCourses(c *gin.Context) {
 	if hasTextSearch(c) {
-		respond.Error(c, http.StatusBadRequest, "validation", "use /courses/search for text search")
+		respond.Error(c, http.StatusBadRequest, "validation", "use /course/search for text search")
 		return
 	}
 	if hasStructuredFilters(c) {
-		respond.Error(c, http.StatusBadRequest, "validation", "use /courses/filter for structured filters")
+		respond.Error(c, http.StatusBadRequest, "validation", "use /course/filter for structured filters")
 		return
 	}
 
-	filter := domain.CourseSearchFilter{
-		Locale:   domain.NormalizeLocale(c.DefaultQuery("locale", "ru")),
+	filter := category.CourseSearchFilter{
+		Locale:   category.NormalizeLocale(c.DefaultQuery("locale", "ru")),
 		Page:     parsePositiveInt(c.Query("page"), 1),
 		PageSize: parsePositiveInt(c.DefaultQuery("page_size", "12"), 12),
 	}
 
 	result, err := h.uc.SearchCourses(c.Request.Context(), filter)
 	if err != nil {
+		fmt.Println(err)
 		writeCatalogError(c, err)
 		return
 	}
@@ -48,19 +51,19 @@ func (h *CatalogHandler) ListCourses(c *gin.Context) {
 
 func (h *CatalogHandler) SearchCourses(c *gin.Context) {
 	if hasStructuredFilters(c) {
-		respond.Error(c, http.StatusBadRequest, "validation", "use /courses for structured filters")
+		respond.Error(c, http.StatusBadRequest, "validation", "use /course for structured filters")
 		return
 	}
 
 	query := strings.TrimSpace(c.Query("q"))
 	if query == "" {
-		respond.Error(c, http.StatusBadRequest, "validation", "q is required for /courses/search")
+		respond.Error(c, http.StatusBadRequest, "validation", "q is required for /course/search")
 		return
 	}
 
-	filter := domain.CourseSearchFilter{
+	filter := category.CourseSearchFilter{
 		Query:    query,
-		Locale:   domain.NormalizeLocale(c.DefaultQuery("locale", "ru")),
+		Locale:   category.NormalizeLocale(c.DefaultQuery("locale", "ru")),
 		Page:     parsePositiveInt(c.Query("page"), 1),
 		PageSize: parsePositiveInt(c.DefaultQuery("page_size", "12"), 12),
 	}
@@ -72,41 +75,6 @@ func (h *CatalogHandler) SearchCourses(c *gin.Context) {
 	}
 
 	respond.JSON(c, http.StatusOK, toSearchCoursesResponse(result))
-}
-
-func (h *CatalogHandler) FilterCourses(c *gin.Context) {
-	if hasTextSearch(c) {
-		respond.Error(c, http.StatusBadRequest, "validation", "use /courses/search for text search")
-		return
-	}
-	if !hasStructuredFilters(c) {
-		respond.Error(c, http.StatusBadRequest, "validation", "at least one filter is required for /courses/filter")
-		return
-	}
-
-	filter, err := buildStructuredFilter(c)
-	if err != nil {
-		writeCatalogError(c, err)
-		return
-	}
-
-	result, err := h.uc.SearchCourses(c.Request.Context(), filter)
-	if err != nil {
-		writeCatalogError(c, err)
-		return
-	}
-
-	respond.JSON(c, http.StatusOK, toSearchCoursesResponse(result))
-}
-
-func (h *CatalogHandler) ListFilterOptions(c *gin.Context) {
-	options, err := h.uc.GetFilterOptions(c.Request.Context(), domain.NormalizeLocale(c.DefaultQuery("locale", "ru")))
-	if err != nil {
-		writeCatalogError(c, err)
-		return
-	}
-
-	respond.JSON(c, http.StatusOK, toFilterOptionsResponse(options))
 }
 
 func collectQueryValues(c *gin.Context, keys ...string) []string {
@@ -124,39 +92,6 @@ func collectQueryValues(c *gin.Context, keys ...string) []string {
 		}
 	}
 	return result
-}
-
-func buildStructuredFilter(c *gin.Context) (domain.CourseSearchFilter, error) {
-	levels, err := domain.ParseCourseLevels(collectQueryValues(c, "level", "levels"))
-	if err != nil {
-		return domain.CourseSearchFilter{}, err
-	}
-
-	durations, err := domain.ParseDurationCategories(collectQueryValues(c, "duration", "durations"))
-	if err != nil {
-		return domain.CourseSearchFilter{}, err
-	}
-
-	minRating, err := parseMinRating(c.Query("min_rating"))
-	if err != nil {
-		return domain.CourseSearchFilter{}, err
-	}
-
-	withCertificate, err := parseWithCertificate(c.Query("with_certificate"))
-	if err != nil {
-		return domain.CourseSearchFilter{}, err
-	}
-
-	return domain.CourseSearchFilter{
-		Locale:          domain.NormalizeLocale(c.DefaultQuery("locale", "ru")),
-		TopicSlugs:      collectQueryValues(c, "topic", "topics"),
-		Levels:          levels,
-		MinRating:       minRating,
-		Durations:       durations,
-		WithCertificate: withCertificate,
-		Page:            parsePositiveInt(c.Query("page"), 1),
-		PageSize:        parsePositiveInt(c.DefaultQuery("page_size", "12"), 12),
-	}, nil
 }
 
 func hasTextSearch(c *gin.Context) bool {

@@ -1,5 +1,11 @@
 package status
 
 type Handler struct {
-	statusUseCase statusUseCase
+	client client
+}
+
+func NewHandler(client client) *Handler {
+	return &Handler{
+		client: client,
+	}
 }

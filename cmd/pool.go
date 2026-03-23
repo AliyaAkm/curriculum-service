@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -12,6 +13,7 @@ func NewPool(
 	ctx context.Context,
 	dbConfig DBConfig,
 ) (*pgxpool.Pool, error) {
+	fmt.Println(dbConfig.DatabaseURL())
 	cfg, err := pgxpool.ParseConfig(dbConfig.DatabaseURL())
 	if err != nil {
 		return nil, err

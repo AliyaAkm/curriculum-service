@@ -1,13 +1,15 @@
-package dto
+package catalog
 
-import "time"
+import (
+	"time"
+)
 
 type CourseResponse struct {
-	ID               string    `json:"id"`
-	Slug             string    `json:"slug"`
-	Status           string    `json:"status"`
-	Level            string    `json:"level"`
-	DurationCategory string    `json:"duration_category"`
+	ID   string `json:"id"`
+	Slug string `json:"slug"`
+	//Status           status.Status `json:"status"`
+	// Level            string    `json:"level"`
+	// DurationCategory string    `json:"duration_category"`
 	ExpectedHours    int       `json:"expected_hours"`
 	Rating           float64   `json:"rating"`
 	RatingCount      int       `json:"rating_count"`

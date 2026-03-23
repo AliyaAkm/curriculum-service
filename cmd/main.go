@@ -2,10 +2,24 @@ package main
 
 import (
 	"context"
+	coursehandler "curriculum-service/internal/http/handlers/course"
+	durationcategoryhandler "curriculum-service/internal/http/handlers/durationcategory"
+	levelhandler "curriculum-service/internal/http/handlers/level"
 	statushandler "curriculum-service/internal/http/handlers/status"
-	"curriculum-service/internal/repo/postgres/catalog"
+	taghandler "curriculum-service/internal/http/handlers/tag"
+	topichandler "curriculum-service/internal/http/handlers/topic"
+	courserepo "curriculum-service/internal/repo/postgres/course"
+	durationcategoryrepo "curriculum-service/internal/repo/postgres/durationcategory"
+	levelrepo "curriculum-service/internal/repo/postgres/level"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
+	tagrepo "curriculum-service/internal/repo/postgres/tag"
+	topicrepo "curriculum-service/internal/repo/postgres/topic"
+	courseusecase "curriculum-service/internal/usecase/course"
+	durationcategoryusecase "curriculum-service/internal/usecase/durationcategory"
+	levelusecase "curriculum-service/internal/usecase/level"
 	statususecase "curriculum-service/internal/usecase/status"
+	tagusecase "curriculum-service/internal/usecase/tag"
+	topicusecase "curriculum-service/internal/usecase/topic"
 	"errors"
 	"log"
 	"net/http"
@@ -13,11 +27,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"curriculum-service/internal/http/handlers"
 	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/router"
-	"curriculum-service/internal/usecase"
-
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -38,7 +49,7 @@ func main() {
 		cfg.DB,
 	)
 	if err != nil {
-		log.Fatal("error connecting to the database:", err)
+		log.Fatal("error connecting to the database pool:", err)
 	}
 	defer pool.Close()
 
@@ -47,18 +58,42 @@ func main() {
 		log.Fatal("error connecting to the database: ", err)
 	}
 
-	catalogRepo := catalog.NewRepo(pool)
-	catalogUC := usecase.NewCatalog(catalogRepo)
-	catalogHandler := handlers.NewCatalogHandler(catalogUC)
-
-	// status courses
+	// status course
 	statusRepo := statusrepo.NewRepo(db)
 	statusUseCase := statususecase.New(statusRepo)
 	statusHandler := statushandler.NewHandler(statusUseCase)
 
+	// level course
+	levelRepo := levelrepo.NewRepo(db)
+	levelUseCase := levelusecase.New(levelRepo)
+	levelHandler := levelhandler.NewHandler(levelUseCase)
+
+	// duration category
+	durationCategoryRepo := durationcategoryrepo.NewRepo(db)
+	durationCategoryUseCase := durationcategoryusecase.New(durationCategoryRepo)
+	durationCategoryHandler := durationcategoryhandler.NewHandler(durationCategoryUseCase)
+
+	// topic course
+	topicRepo := topicrepo.NewRepo(db)
+	topicUseCase := topicusecase.New(topicRepo)
+	topicHandler := topichandler.NewHandler(topicUseCase)
+
+	// tag course
+	tagRepo := tagrepo.NewRepo(db)
+	tagUseCase := tagusecase.New(tagRepo)
+	tagHandler := taghandler.NewHandler(tagUseCase)
+
+	courseRepo := courserepo.NewRepo(db)
+	courseUseCase := courseusecase.New(courseRepo)
+	courseHandler := coursehandler.New(courseUseCase)
+
 	handler := router.Handler{
-		Catalog: catalogHandler,
-		Status:  statusHandler,
+		Status:           statusHandler,
+		Level:            levelHandler,
+		DurationCategory: durationCategoryHandler,
+		Topic:            topicHandler,
+		Tag:              tagHandler,
+		Course:           courseHandler,
 	}
 
 	engine := router.New(
