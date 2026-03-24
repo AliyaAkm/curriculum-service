@@ -3,7 +3,7 @@ package tag
 import "github.com/google/uuid"
 
 type Tag struct {
-	ID   uuid.UUID `gorm:"column:id"`
+	ID   uuid.UUID `gorm:"column:id;primary_key"`
 	Name string    `gorm:"column:name"`
 	Code string    `gorm:"column:code"`
 }

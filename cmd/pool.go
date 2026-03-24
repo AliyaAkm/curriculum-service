@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"curriculum-service/internal/domain/course"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"gorm.io/driver/postgres"
@@ -50,6 +51,10 @@ func NewDB(
 	defer cancel()
 
 	if err = sqlDB.PingContext(ctxTimeout); err != nil {
+		return nil, err
+	}
+
+	if err = db.SetupJoinTable(&course.Course{}, "Tags", &course.CourseTag{}); err != nil {
 		return nil, err
 	}
 

@@ -7,6 +7,8 @@ import (
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
 	"curriculum-service/internal/http/dto/status"
+	dtotag "curriculum-service/internal/http/dto/tag"
+	"curriculum-service/internal/http/dto/topic"
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -33,10 +35,11 @@ func writeCatalogError(c *gin.Context, err error) {
 	}
 }
 
-func convertCourses(resp []domaincourse.Courses) []dtocourse.Courses {
+func convertCourses(resp []domaincourse.Course) []dtocourse.Courses {
 	courses := make([]dtocourse.Courses, len(resp))
 
 	for i := range resp {
+		tags := make([]dtotag.Tag, len(resp[i].Tags))
 		roles := make([]dtocourse.Role, len(resp[i].Author.Roles))
 		for j := range resp[i].Author.Roles {
 			roles[j] = dtocourse.Role{
@@ -50,7 +53,13 @@ func convertCourses(resp []domaincourse.Courses) []dtocourse.Courses {
 				CreatedAt:    resp[i].Author.Roles[j].CreatedAt,
 			}
 		}
-
+		for j := range resp[i].Tags {
+			tags[j] = dtotag.Tag{
+				ID:   resp[i].Tags[j].ID,
+				Code: resp[i].Tags[j].Code,
+				Name: resp[i].Tags[j].Name,
+			}
+		}
 		courses[i] = dtocourse.Courses{
 			ID:             resp[i].ID,
 			ExpectedHours:  resp[i].ExpectedHours,
@@ -84,6 +93,12 @@ func convertCourses(resp []domaincourse.Courses) []dtocourse.Courses {
 				Roles:     roles,
 				IsActive:  resp[i].Author.IsActive,
 				CreatedAt: resp[i].Author.CreatedAt,
+			},
+			Tags: tags,
+			Topic: topic.Topic{
+				ID:   resp[i].Topic.ID,
+				Name: resp[i].Topic.Name,
+				Code: resp[i].Topic.Code,
 			},
 		}
 	}

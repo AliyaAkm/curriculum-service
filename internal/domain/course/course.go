@@ -4,11 +4,13 @@ import (
 	"curriculum-service/internal/domain/durationcategory"
 	"curriculum-service/internal/domain/level"
 	"curriculum-service/internal/domain/status"
+	"curriculum-service/internal/domain/tag"
+	"curriculum-service/internal/domain/topic"
 	"github.com/google/uuid"
 	"time"
 )
 
-type Courses struct {
+type Course struct {
 	ID                 uuid.UUID `gorm:"column:id;primary_key"`
 	ExpectedHours      int       `gorm:"column:expected_hours"`
 	Rating             float64   `gorm:"column:rating"`
@@ -24,10 +26,14 @@ type Courses struct {
 	LevelID            uuid.UUID `gorm:"column:level_id"`
 	DurationCategoryID uuid.UUID `gorm:"column:duration_category_id"`
 	AuthorID           uuid.UUID `gorm:"column:author_id"`
-	Status             status.Status
-	DurationCategory   durationcategory.DurationCategory
-	Level              level.Level
-	Author             User
+	TopicID            uuid.UUID `gorm:"column:topic_id"`
+
+	Status           status.Status
+	DurationCategory durationcategory.DurationCategory
+	Level            level.Level
+	Author           User
+	Tags             []tag.Tag `gorm:"many2many:course_course_tags;"`
+	Topic            topic.Topic
 }
 
 type User struct {
@@ -49,7 +55,14 @@ type Role struct {
 	IsSupport    bool
 	CreatedAt    time.Time
 }
+type CourseTag struct {
+	CourseID uuid.UUID `gorm:"column:course_id;primaryKey"`
+	TagID    uuid.UUID `gorm:"column:tag_id;primaryKey"`
+}
 
-func (Courses) TableName() string {
+func (Course) TableName() string {
 	return "courses"
+}
+func (CourseTag) TableName() string {
+	return "course_course_tags"
 }

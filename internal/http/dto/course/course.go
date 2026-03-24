@@ -4,6 +4,8 @@ import (
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
 	"curriculum-service/internal/http/dto/status"
+	"curriculum-service/internal/http/dto/tag"
+	"curriculum-service/internal/http/dto/topic"
 	"github.com/google/uuid"
 	"time"
 )
@@ -24,6 +26,8 @@ type Courses struct {
 	Level            level.Level                       `json:"level"`
 	DurationCategory durationcategory.DurationCategory `json:"duration_category"`
 	Author           User                              `json:"author"`
+	Tags             []tag.Tag                         `json:"tags"`
+	Topic            topic.Topic                       `json:"topic"`
 }
 
 type User struct {

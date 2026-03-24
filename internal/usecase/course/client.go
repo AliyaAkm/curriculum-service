@@ -6,5 +6,5 @@ import (
 )
 
 type Repository interface {
-	GetAllCourses(ctx context.Context) ([]course.Courses, error)
+	GetAllCourses(ctx context.Context) ([]course.Course, error)
 }
