@@ -7,26 +7,31 @@ import (
 	"curriculum-service/internal/domain/tag"
 	"curriculum-service/internal/domain/topic"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"time"
 )
 
 type Course struct {
-	ID                 uuid.UUID `gorm:"column:id;primary_key"`
-	ExpectedHours      int       `gorm:"column:expected_hours"`
-	Rating             float64   `gorm:"column:rating"`
-	RatingCount        int       `gorm:"column:rating_count"`
-	StudentsCount      int       `gorm:"column:students_count"`
-	LessonsCount       int       `gorm:"column:lessons_count"`
-	HasCertificate     bool      `gorm:"column:has_certificate"`
-	CoverImageUrl      string    `gorm:"column:cover_image_url"`
-	PublishedAt        time.Time `gorm:"column:published_at"`
-	CreatedAt          time.Time `gorm:"column:created_at"`
-	UpdatedAt          time.Time `gorm:"column:updated_at"`
-	StatusID           uuid.UUID `gorm:"column:status_id"`
-	LevelID            uuid.UUID `gorm:"column:level_id"`
-	DurationCategoryID uuid.UUID `gorm:"column:duration_category_id"`
-	AuthorID           uuid.UUID `gorm:"column:author_id"`
-	TopicID            uuid.UUID `gorm:"column:topic_id"`
+	ID                 uuid.UUID      `gorm:"column:id;primary_key"`
+	Title              string         `gorm:"column:title"`
+	SubTitle           string         `gorm:"column:subtitle"`
+	Description        string         `gorm:"column:description"`
+	ExpectedHours      int            `gorm:"column:expected_hours"`
+	Rating             float64        `gorm:"column:rating"`
+	RatingCount        int            `gorm:"column:rating_count"`
+	StudentsCount      int            `gorm:"column:students_count"`
+	LessonsCount       int            `gorm:"column:lessons_count"`
+	HasCertificate     bool           `gorm:"column:has_certificate"`
+	CoverImageUrl      string         `gorm:"column:cover_image_url"`
+	PublishedAt        time.Time      `gorm:"column:published_at"`
+	CreatedAt          time.Time      `gorm:"column:created_at"`
+	UpdatedAt          time.Time      `gorm:"column:updated_at"`
+	StatusID           uuid.UUID      `gorm:"column:status_id"`
+	LevelID            uuid.UUID      `gorm:"column:level_id"`
+	DurationCategoryID uuid.UUID      `gorm:"column:duration_category_id"`
+	AuthorID           uuid.UUID      `gorm:"column:author_id"`
+	TopicID            uuid.UUID      `gorm:"column:topic_id"`
+	LearningOutcomes   pq.StringArray `gorm:"column:learning_outcomes;type:text[]"`
 
 	Status           status.Status
 	DurationCategory durationcategory.DurationCategory

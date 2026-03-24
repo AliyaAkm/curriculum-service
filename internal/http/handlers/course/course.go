@@ -3,6 +3,7 @@ package course
 import (
 	"curriculum-service/internal/domain"
 	domaincourse "curriculum-service/internal/domain/course"
+	domaintag "curriculum-service/internal/domain/tag"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
@@ -16,7 +17,12 @@ import (
 )
 
 func (h *Handler) ListCourses(c *gin.Context) {
-	result, err := h.client.GetAllCourses(c.Request.Context())
+	var query dtocourse.GetCoursesQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid query params")
+		return
+	}
+	result, err := h.client.GetAllCourses(c.Request.Context(), query)
 	if err != nil {
 		writeCatalogError(c, err)
 		return
@@ -25,6 +31,20 @@ func (h *Handler) ListCourses(c *gin.Context) {
 	respond.JSON(c, http.StatusOK, convertCourses(result))
 }
 
+func (h *Handler) CreateCourse(c *gin.Context) {
+	request := dtocourse.CourseRequest{}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid body")
+		return
+	}
+	result, err := h.client.CreateCourse(c.Request.Context(), convertCourseRequest(request))
+	if err != nil {
+		writeCatalogError(c, err)
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, convertCourse(result))
+}
 func writeCatalogError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation):
@@ -60,8 +80,12 @@ func convertCourses(resp []domaincourse.Course) []dtocourse.Courses {
 				Name: resp[i].Tags[j].Name,
 			}
 		}
+
 		courses[i] = dtocourse.Courses{
 			ID:             resp[i].ID,
+			Title:          resp[i].Title,
+			SubTitle:       resp[i].SubTitle,
+			Description:    resp[i].Description,
 			ExpectedHours:  resp[i].ExpectedHours,
 			Rating:         resp[i].Rating,
 			RatingCount:    resp[i].RatingCount,
@@ -100,8 +124,108 @@ func convertCourses(resp []domaincourse.Course) []dtocourse.Courses {
 				Name: resp[i].Topic.Name,
 				Code: resp[i].Topic.Code,
 			},
+			LearningOutcomes: resp[i].LearningOutcomes,
 		}
 	}
 
 	return courses
+}
+
+func convertCourse(resp *domaincourse.Course) dtocourse.Courses {
+	tags := make([]dtotag.Tag, len(resp.Tags))
+	roles := make([]dtocourse.Role, len(resp.Author.Roles))
+	for j := range resp.Author.Roles {
+		roles[j] = dtocourse.Role{
+			ID:           resp.Author.Roles[j].ID,
+			Code:         resp.Author.Roles[j].Code,
+			Name:         resp.Author.Roles[j].Name,
+			Description:  resp.Author.Roles[j].Description,
+			IsDefault:    resp.Author.Roles[j].IsDefault,
+			IsPrivileged: resp.Author.Roles[j].IsPrivileged,
+			IsSupport:    resp.Author.Roles[j].IsSupport,
+			CreatedAt:    resp.Author.Roles[j].CreatedAt,
+		}
+	}
+	for j := range resp.Tags {
+		tags[j] = dtotag.Tag{
+			ID:   resp.Tags[j].ID,
+			Code: resp.Tags[j].Code,
+			Name: resp.Tags[j].Name,
+		}
+	}
+
+	return dtocourse.Courses{
+		ID:             resp.ID,
+		Title:          resp.Title,
+		SubTitle:       resp.SubTitle,
+		Description:    resp.Description,
+		ExpectedHours:  resp.ExpectedHours,
+		Rating:         resp.Rating,
+		RatingCount:    resp.RatingCount,
+		StudentsCount:  resp.StudentsCount,
+		LessonsCount:   resp.LessonsCount,
+		HasCertificate: resp.HasCertificate,
+		CoverImageUrl:  resp.CoverImageUrl,
+		PublishedAt:    resp.PublishedAt,
+		CreatedAt:      resp.CreatedAt,
+		UpdatedAt:      resp.UpdatedAt,
+		Status: status.Status{
+			ID:   resp.Status.ID,
+			Name: resp.Status.Name,
+			Code: resp.Status.Code,
+		},
+		Level: level.Level{
+			ID:   resp.Level.ID,
+			Name: resp.Level.Name,
+			Code: resp.Level.Code,
+		},
+		DurationCategory: durationcategory.DurationCategory{
+			ID:   resp.DurationCategory.ID,
+			Name: resp.DurationCategory.Name,
+			Code: resp.DurationCategory.Code,
+		},
+		Author: dtocourse.User{
+			ID:        resp.Author.ID,
+			Email:     resp.Author.Email,
+			Roles:     roles,
+			IsActive:  resp.Author.IsActive,
+			CreatedAt: resp.Author.CreatedAt,
+		},
+		Tags: tags,
+		Topic: topic.Topic{
+			ID:   resp.Topic.ID,
+			Name: resp.Topic.Name,
+			Code: resp.Topic.Code,
+		},
+		LearningOutcomes: resp.LearningOutcomes,
+	}
+}
+
+func convertCourseRequest(resp dtocourse.CourseRequest) *domaincourse.Course {
+	tags := make([]domaintag.Tag, len(resp.TagIDs))
+	for i, id := range resp.TagIDs {
+		tags[i] = domaintag.Tag{
+			ID: id,
+		}
+	}
+
+	return &domaincourse.Course{
+		ID:                 resp.ID,
+		Title:              resp.Title,
+		SubTitle:           resp.SubTitle,
+		Description:        resp.Description,
+		ExpectedHours:      resp.ExpectedHours,
+		Rating:             resp.Rating,
+		RatingCount:        resp.RatingCount,
+		LessonsCount:       resp.LessonsCount,
+		HasCertificate:     resp.HasCertificate,
+		CoverImageUrl:      resp.CoverImageUrl,
+		StatusID:           resp.StatusID,
+		LevelID:            resp.LevelID,
+		DurationCategoryID: resp.DurationCategoryID,
+		AuthorID:           resp.AuthorID,
+		TopicID:            resp.TopicID,
+		Tags:               tags,
+		LearningOutcomes:   resp.LearningOutcomes,
+	}
 }

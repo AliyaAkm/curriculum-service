@@ -12,6 +12,9 @@ import (
 
 type Courses struct {
 	ID               uuid.UUID                         `json:"id"`
+	Title            string                            `json:"title"`
+	SubTitle         string                            `json:"sub_title"`
+	Description      string                            `json:"description"`
 	ExpectedHours    int                               `json:"expected_hours"`
 	Rating           float64                           `json:"rating"`
 	RatingCount      int                               `json:"rating_count"`
@@ -28,6 +31,27 @@ type Courses struct {
 	Author           User                              `json:"author"`
 	Tags             []tag.Tag                         `json:"tags"`
 	Topic            topic.Topic                       `json:"topic"`
+	LearningOutcomes []string                          `json:"learning_outcome"`
+}
+
+type CourseRequest struct {
+	ID                 uuid.UUID   `json:"id"`
+	Title              string      `json:"title"`
+	SubTitle           string      `json:"sub_title"`
+	Description        string      `json:"description"`
+	ExpectedHours      int         `json:"expected_hours"`
+	Rating             float64     `json:"rating"`
+	RatingCount        int         `json:"rating_count"`
+	LessonsCount       int         `json:"lessons_count"`
+	HasCertificate     bool        `json:"has_certificate"`
+	CoverImageUrl      string      `json:"cover_image_url"`
+	LearningOutcomes   []string    `json:"learning_outcomes"`
+	LevelID            uuid.UUID   `json:"level_id"`
+	StatusID           uuid.UUID   `json:"status_id"`
+	DurationCategoryID uuid.UUID   `json:"duration_category_id"`
+	AuthorID           uuid.UUID   `json:"author_id"`
+	TagIDs             []uuid.UUID `json:"tag_ids"`
+	TopicID            uuid.UUID   `json:"topic_id"`
 }
 
 type User struct {

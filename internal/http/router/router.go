@@ -32,6 +32,7 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/dictionary/duration_category", handler.DurationCategory.ListCourseDurationCategories)
 	r.GET("/dictionary/topic", handler.Topic.ListCourseTopics)
 	r.GET("/dictionary/tag", handler.Tag.ListCourseTags)
+	r.POST("/course", handler.Course.CreateCourse)
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)
