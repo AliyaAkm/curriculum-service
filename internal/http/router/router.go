@@ -5,6 +5,7 @@ import (
 	"curriculum-service/internal/http/handlers/durationcategory"
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
+	"curriculum-service/internal/http/handlers/module"
 	"curriculum-service/internal/http/handlers/status"
 	"curriculum-service/internal/http/handlers/tag"
 	"curriculum-service/internal/http/handlers/topic"
@@ -20,6 +21,7 @@ type Handler struct {
 	Tag              *tag.Handler
 	Course           *course.Handler
 	Locale           *locale.Handler
+	Module           *module.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -29,16 +31,26 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/health", health)
 
 	r.GET("/course", handler.Course.ListCourses)
+	// cправочники
 	r.GET("/dictionary/status", handler.Status.ListCourseStatuses)
 	r.GET("/dictionary/level", handler.Level.ListCourseLevels)
 	r.GET("/dictionary/duration_category", handler.DurationCategory.ListCourseDurationCategories)
 	r.GET("/dictionary/topic", handler.Topic.ListCourseTopics)
 	r.GET("/dictionary/tag", handler.Tag.ListCourseTags)
+	r.GET("/dictionary/locale", handler.Locale.ListCourseLocales)
+
+	// курсы
 	r.POST("/course", handler.Course.CreateCourse)
 	r.GET("/course/:id", handler.Course.GetCourseByID)
 	r.DELETE("/course/:id", handler.Course.DeleteCourse)
 	r.PUT("/course/:id", handler.Course.UpdateCourse)
-	r.GET("/dictionary/locale", handler.Locale.ListCourseLocales)
+
+	// модули
+	r.GET("/module", handler.Module.GetAllModules)
+	r.POST("/module", handler.Module.CreateModule)
+	r.GET("/module/:id", handler.Module.GetModuleByID)
+	r.PUT("/module/:id", handler.Module.UpdateModule)
+	r.DELETE("/module/:id", handler.Module.DeleteModule)
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)
