@@ -5,18 +5,21 @@ import (
 	coursehandler "curriculum-service/internal/http/handlers/course"
 	durationcategoryhandler "curriculum-service/internal/http/handlers/durationcategory"
 	levelhandler "curriculum-service/internal/http/handlers/level"
+	localehandler "curriculum-service/internal/http/handlers/locale"
 	statushandler "curriculum-service/internal/http/handlers/status"
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	courserepo "curriculum-service/internal/repo/postgres/course"
 	durationcategoryrepo "curriculum-service/internal/repo/postgres/durationcategory"
 	levelrepo "curriculum-service/internal/repo/postgres/level"
+	localerepo "curriculum-service/internal/repo/postgres/locale"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
 	courseusecase "curriculum-service/internal/usecase/course"
 	durationcategoryusecase "curriculum-service/internal/usecase/durationcategory"
 	levelusecase "curriculum-service/internal/usecase/level"
+	localeusecase "curriculum-service/internal/usecase/locale"
 	statususecase "curriculum-service/internal/usecase/status"
 	tagusecase "curriculum-service/internal/usecase/tag"
 	topicusecase "curriculum-service/internal/usecase/topic"
@@ -87,6 +90,10 @@ func main() {
 	courseUseCase := courseusecase.New(courseRepo)
 	courseHandler := coursehandler.New(courseUseCase)
 
+	LocaleRepo := localerepo.NewRepo(db)
+	localeUseCase := localeusecase.New(LocaleRepo)
+	localeHandler := localehandler.NewHandler(localeUseCase)
+
 	handler := router.Handler{
 		Status:           statusHandler,
 		Level:            levelHandler,
@@ -94,6 +101,7 @@ func main() {
 		Topic:            topicHandler,
 		Tag:              tagHandler,
 		Course:           courseHandler,
+		Locale:           localeHandler,
 	}
 
 	engine := router.New(

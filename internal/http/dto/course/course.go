@@ -35,13 +35,13 @@ type Courses struct {
 }
 
 type CourseRequest struct {
-	ID                 uuid.UUID   `json:"id"`
 	Title              string      `json:"title"`
 	SubTitle           string      `json:"sub_title"`
 	Description        string      `json:"description"`
 	ExpectedHours      int         `json:"expected_hours"`
 	Rating             float64     `json:"rating"`
 	RatingCount        int         `json:"rating_count"`
+	StudentsCount      int         `json:"students_count"`
 	LessonsCount       int         `json:"lessons_count"`
 	HasCertificate     bool        `json:"has_certificate"`
 	CoverImageUrl      string      `json:"cover_image_url"`

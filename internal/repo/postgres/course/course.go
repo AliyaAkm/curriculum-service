@@ -4,6 +4,8 @@ import (
 	"context"
 	"curriculum-service/internal/domain/course"
 	dtocourse "curriculum-service/internal/http/dto/course"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"strings"
 )
@@ -98,10 +100,39 @@ func (r *Repo) GetAllCourses(ctx context.Context, query dtocourse.GetCoursesQuer
 
 	return courses, nil
 }
-func (r *Repo) CreateCourse(ctx context.Context, value *course.Course) (*course.Course, error) {
-	err := r.db.WithContext(ctx).Create(&value).Error
+func (r *Repo) CreateCourse(ctx context.Context, value *course.Course) (uuid.UUID, error) {
+	err := r.db.WithContext(ctx).Create(value).Error
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	return value.ID, nil
+}
+func (r *Repo) UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error {
+	err := r.db.WithContext(ctx).Where("id = ?", id).Updates(value).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (r *Repo) GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error) {
+	var entity course.Course
+	err := r.courseQuery(ctx).First(&entity, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
-	return value, nil
+	return &entity, nil
+}
+
+func (r *Repo) DeleteCourse(ctx context.Context, id uuid.UUID) error {
+	var entity course.Course
+	err := r.db.WithContext(ctx).Delete(&entity, "id = ?", id).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repo) courseQuery(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx).Preload("Status").Preload("DurationCategory").Preload("Level").Preload("Author.Roles").Preload("Tags").Preload("Topic")
 }

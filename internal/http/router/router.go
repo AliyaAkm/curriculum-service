@@ -4,6 +4,7 @@ import (
 	"curriculum-service/internal/http/handlers/course"
 	"curriculum-service/internal/http/handlers/durationcategory"
 	"curriculum-service/internal/http/handlers/level"
+	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/status"
 	"curriculum-service/internal/http/handlers/tag"
 	"curriculum-service/internal/http/handlers/topic"
@@ -18,6 +19,7 @@ type Handler struct {
 	Topic            *topic.Handler
 	Tag              *tag.Handler
 	Course           *course.Handler
+	Locale           *locale.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -33,6 +35,10 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/dictionary/topic", handler.Topic.ListCourseTopics)
 	r.GET("/dictionary/tag", handler.Tag.ListCourseTags)
 	r.POST("/course", handler.Course.CreateCourse)
+	r.GET("/course/:id", handler.Course.GetCourseByID)
+	r.DELETE("/course/:id", handler.Course.DeleteCourse)
+	r.PUT("/course/:id", handler.Course.UpdateCourse)
+	r.GET("/dictionary/locale", handler.Locale.ListCourseLocales)
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)

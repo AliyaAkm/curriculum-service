@@ -13,6 +13,7 @@ import (
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -45,6 +46,55 @@ func (h *Handler) CreateCourse(c *gin.Context) {
 
 	respond.JSON(c, http.StatusOK, convertCourse(result))
 }
+
+func (h *Handler) GetCourseByID(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid course id")
+		return
+	}
+	result, err := h.client.GetCourseByID(c.Request.Context(), id)
+	if err != nil {
+		writeCatalogError(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, convertCourse(result))
+
+}
+
+func (h *Handler) DeleteCourse(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid course id")
+		return
+	}
+	err = h.client.DeleteCourse(c.Request.Context(), id)
+	if err != nil {
+		writeCatalogError(c, err)
+	}
+	c.Status(http.StatusNoContent)
+}
+func (h *Handler) UpdateCourse(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid course id")
+		return
+	}
+	request := dtocourse.CourseRequest{}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid body")
+		return
+	}
+
+	result, err := h.client.UpdateCourse(c.Request.Context(), id, convertCourseRequest(request))
+	if err != nil {
+		writeCatalogError(c, err)
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, convertCourse(result))
+}
+
 func writeCatalogError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation):
@@ -210,13 +260,13 @@ func convertCourseRequest(resp dtocourse.CourseRequest) *domaincourse.Course {
 	}
 
 	return &domaincourse.Course{
-		ID:                 resp.ID,
 		Title:              resp.Title,
 		SubTitle:           resp.SubTitle,
 		Description:        resp.Description,
 		ExpectedHours:      resp.ExpectedHours,
 		Rating:             resp.Rating,
 		RatingCount:        resp.RatingCount,
+		StudentsCount:      resp.StudentsCount,
 		LessonsCount:       resp.LessonsCount,
 		HasCertificate:     resp.HasCertificate,
 		CoverImageUrl:      resp.CoverImageUrl,
