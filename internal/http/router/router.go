@@ -3,6 +3,7 @@ package router
 import (
 	"curriculum-service/internal/http/handlers/course"
 	"curriculum-service/internal/http/handlers/durationcategory"
+	"curriculum-service/internal/http/handlers/lesson"
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
@@ -22,6 +23,7 @@ type Handler struct {
 	Course           *course.Handler
 	Locale           *locale.Handler
 	Module           *module.Handler
+	Lesson           *lesson.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -51,6 +53,12 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/module/:id", handler.Module.GetModuleByID)
 	r.PUT("/module/:id", handler.Module.UpdateModule)
 	r.DELETE("/module/:id", handler.Module.DeleteModule)
+
+	// lesson
+	r.GET("/module/lesson/:id", handler.Lesson.GetAllLessons)
+	r.GET("/lesson/:id", handler.Lesson.GetLessonByID)
+	r.PUT("/lesson/:id", handler.Lesson.UpdateLesson)
+	r.POST("/lesson", handler.Lesson.CreateLesson)
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)

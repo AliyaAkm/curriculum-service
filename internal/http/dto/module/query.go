@@ -6,10 +6,10 @@ import (
 )
 
 type ModuleRequest struct {
-	CourseID    uuid.UUID `json:"course_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Locale      string    `json:"locale"`
+	CourseID uuid.UUID `json:"course_id"`
+	Title    string    `json:"title"`
+	Summary  string    `json:"summary"`
+	Locale   string    `json:"locale"`
 }
 
 type GetModuleQuery struct {
@@ -20,11 +20,11 @@ type GetModuleQuery struct {
 }
 
 type Modules struct {
-	ID          uuid.UUID `json:"id"`
-	CourseID    uuid.UUID `json:"course_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Locale      string    `json:"locale"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID        uuid.UUID `json:"id"`
+	CourseID  uuid.UUID `json:"course_id"`
+	Title     string    `json:"title"`
+	Summary   string    `json:"summary"`
+	Locale    string    `json:"locale"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

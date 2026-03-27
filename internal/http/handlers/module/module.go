@@ -110,26 +110,26 @@ func convertModules(resp []module.Module) []dtomodule.Modules {
 	modules := make([]dtomodule.Modules, len(resp))
 	for i := range resp {
 		modules[i] = dtomodule.Modules{
-			ID:          resp[i].ID,
-			CourseID:    resp[i].CourseID,
-			Title:       resp[i].Title,
-			Description: resp[i].Description,
-			Locale:      resp[i].Locale,
-			CreatedAt:   resp[i].CreatedAt,
-			UpdatedAt:   resp[i].UpdatedAt,
+			ID:        resp[i].ID,
+			CourseID:  resp[i].CourseID,
+			Title:     resp[i].Title,
+			Summary:   resp[i].Description,
+			Locale:    resp[i].Locale,
+			CreatedAt: resp[i].CreatedAt,
+			UpdatedAt: resp[i].UpdatedAt,
 		}
 	}
 	return modules
 }
 func convertModule(resp *module.Module) dtomodule.Modules {
 	return dtomodule.Modules{
-		ID:          resp.ID,
-		CourseID:    resp.CourseID,
-		Title:       resp.Title,
-		Description: resp.Description,
-		Locale:      resp.Locale,
-		CreatedAt:   resp.CreatedAt,
-		UpdatedAt:   resp.UpdatedAt,
+		ID:        resp.ID,
+		CourseID:  resp.CourseID,
+		Title:     resp.Title,
+		Summary:   resp.Description,
+		Locale:    resp.Locale,
+		CreatedAt: resp.CreatedAt,
+		UpdatedAt: resp.UpdatedAt,
 	}
 }
 
@@ -142,7 +142,7 @@ func convertModuleRequest(resp dtomodule.ModuleRequest) *module.Module {
 	return &module.Module{
 		CourseID:    resp.CourseID,
 		Title:       resp.Title,
-		Description: resp.Description,
+		Description: resp.Summary,
 		Locale:      locale,
 	}
 }
