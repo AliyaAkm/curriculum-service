@@ -81,7 +81,7 @@ func (h *Handler) UpdateCourse(c *gin.Context) {
 		return
 	}
 	request := dtocourse.CourseRequest{}
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err = c.ShouldBindJSON(&request); err != nil {
 		respond.JSON(c, http.StatusBadRequest, "invalid body")
 		return
 	}
@@ -260,12 +260,12 @@ func convertCourseRequest(resp dtocourse.CourseRequest) *domaincourse.Course {
 	}
 
 	return &domaincourse.Course{
-		Title:              resp.Title,
-		SubTitle:           resp.SubTitle,
-		Description:        resp.Description,
-		ExpectedHours:      resp.ExpectedHours,
-		Rating:             resp.Rating,
-		RatingCount:        resp.RatingCount,
+		Title:         resp.Title,
+		SubTitle:      resp.SubTitle,
+		Description:   resp.Description,
+		ExpectedHours: resp.ExpectedHours,
+		//Rating:             resp.Rating,
+		//RatingCount:        resp.RatingCount,
 		StudentsCount:      resp.StudentsCount,
 		LessonsCount:       resp.LessonsCount,
 		HasCertificate:     resp.HasCertificate,

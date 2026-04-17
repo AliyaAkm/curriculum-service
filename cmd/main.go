@@ -8,6 +8,7 @@ import (
 	levelhandler "curriculum-service/internal/http/handlers/level"
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
+	reviewhandler "curriculum-service/internal/http/handlers/review"
 	statushandler "curriculum-service/internal/http/handlers/status"
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
@@ -17,6 +18,7 @@ import (
 	levelrepo "curriculum-service/internal/repo/postgres/level"
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
+	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
@@ -26,10 +28,12 @@ import (
 	levelusecase "curriculum-service/internal/usecase/level"
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
+	reviewusecase "curriculum-service/internal/usecase/review"
 	statususecase "curriculum-service/internal/usecase/status"
 	tagusecase "curriculum-service/internal/usecase/tag"
 	topicusecase "curriculum-service/internal/usecase/topic"
 	"errors"
+	"github.com/go-playground/validator/v10"
 	"log"
 	"net/http"
 	"os"
@@ -67,6 +71,8 @@ func main() {
 		log.Fatal("error connecting to the database: ", err)
 	}
 
+	validate := validator.New()
+
 	// status course
 	statusRepo := statusrepo.NewRepo(db)
 	statusUseCase := statususecase.New(statusRepo)
@@ -92,8 +98,13 @@ func main() {
 	tagUseCase := tagusecase.New(tagRepo)
 	tagHandler := taghandler.NewHandler(tagUseCase)
 
+	// отзывы
+	reviewRepo := reviewrepo.NewRepo(db)
+	reviewUseCase := reviewusecase.New(reviewRepo)
+	reviewHandler := reviewhandler.NewHandler(reviewUseCase, validate)
+
 	courseRepo := courserepo.NewRepo(db)
-	courseUseCase := courseusecase.New(courseRepo)
+	courseUseCase := courseusecase.New(courseRepo, reviewRepo)
 	courseHandler := coursehandler.New(courseUseCase)
 
 	LocaleRepo := localerepo.NewRepo(db)
@@ -118,6 +129,7 @@ func main() {
 		Locale:           localeHandler,
 		Module:           moduleHandler,
 		Lesson:           lessonHandler,
+		Review:           reviewHandler,
 	}
 
 	engine := router.New(

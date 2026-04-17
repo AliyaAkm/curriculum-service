@@ -17,8 +17,8 @@ type Course struct {
 	SubTitle           string         `gorm:"column:subtitle"`
 	Description        string         `gorm:"column:description"`
 	ExpectedHours      int            `gorm:"column:expected_hours"`
-	Rating             float64        `gorm:"column:rating"`
-	RatingCount        int            `gorm:"column:rating_count"`
+	Rating             float64        `gorm:"-"`
+	RatingCount        int            `gorm:"-"`
 	StudentsCount      int            `gorm:"column:students_count"`
 	LessonsCount       int            `gorm:"column:lessons_count"`
 	HasCertificate     bool           `gorm:"column:has_certificate"`

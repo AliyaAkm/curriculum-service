@@ -7,6 +7,7 @@ import (
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
+	"curriculum-service/internal/http/handlers/review"
 	"curriculum-service/internal/http/handlers/status"
 	"curriculum-service/internal/http/handlers/tag"
 	"curriculum-service/internal/http/handlers/topic"
@@ -24,6 +25,7 @@ type Handler struct {
 	Locale           *locale.Handler
 	Module           *module.Handler
 	Lesson           *lesson.Handler
+	Review           *review.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -62,6 +64,13 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)
+
+	// review
+	r.GET("/review/:id", handler.Review.GetReviewByID)
+	r.POST("/review", handler.Review.CreateReview)
+	r.PUT("/review/:id", handler.Review.UpdateReview)
+	r.DELETE("/review/:id", handler.Review.DeleteReview)
+	r.GET("/course/review/:id", handler.Review.GetAllReviewsByCourseID)
 
 	return r
 }

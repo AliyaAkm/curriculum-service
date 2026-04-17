@@ -3,6 +3,7 @@ package course
 import (
 	"context"
 	"curriculum-service/internal/domain/course"
+	"curriculum-service/internal/domain/review"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"github.com/google/uuid"
 )
@@ -13,4 +14,7 @@ type Repository interface {
 	GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error)
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
 	UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error
+}
+type ReviewRepository interface {
+	GetAllReviewsByCourseID(ctx context.Context, courseID uuid.UUID) ([]review.CourseReview, error)
 }
