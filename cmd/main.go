@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	coursehandler "curriculum-service/internal/http/handlers/course"
+	coursepointhandler "curriculum-service/internal/http/handlers/coursepoint"
 	durationcategoryhandler "curriculum-service/internal/http/handlers/durationcategory"
 	lessonhandler "curriculum-service/internal/http/handlers/lesson"
 	levelhandler "curriculum-service/internal/http/handlers/level"
@@ -13,6 +14,7 @@ import (
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	courserepo "curriculum-service/internal/repo/postgres/course"
+	coursepointrepo "curriculum-service/internal/repo/postgres/coursepoint"
 	durationcategoryrepo "curriculum-service/internal/repo/postgres/durationcategory"
 	lessonrepo "curriculum-service/internal/repo/postgres/lesson"
 	levelrepo "curriculum-service/internal/repo/postgres/level"
@@ -23,6 +25,7 @@ import (
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
 	courseusecase "curriculum-service/internal/usecase/course"
+	coursepointusecase "curriculum-service/internal/usecase/coursepoint"
 	durationcategoryusecase "curriculum-service/internal/usecase/durationcategory"
 	lessonusecase "curriculum-service/internal/usecase/lesson"
 	levelusecase "curriculum-service/internal/usecase/level"
@@ -119,6 +122,10 @@ func main() {
 	lessonUseCase := lessonusecase.New(lessonRepo)
 	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase)
 
+	coursePointRepo := coursepointrepo.NewRepo(db)
+	coursePointUseCase := coursepointusecase.New(coursePointRepo)
+	coursePointHandler := coursepointhandler.New(coursePointUseCase)
+
 	handler := router.Handler{
 		Status:           statusHandler,
 		Level:            levelHandler,
@@ -130,6 +137,7 @@ func main() {
 		Module:           moduleHandler,
 		Lesson:           lessonHandler,
 		Review:           reviewHandler,
+		CoursePoint:      coursePointHandler,
 	}
 
 	engine := router.New(

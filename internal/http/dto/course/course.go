@@ -34,6 +34,17 @@ type Courses struct {
 	LearningOutcomes []string                          `json:"learning_outcome"`
 }
 
+type Subscription struct {
+	ID       uuid.UUID `json:"id"`
+	UserID   uuid.UUID `json:"user_id"`
+	CourseID uuid.UUID `json:"course_id"`
+}
+
+type SubscriptionRequest struct {
+	UserID   uuid.UUID `json:"user_id"`
+	CourseID uuid.UUID `json:"course_id"`
+}
+
 type CourseRequest struct {
 	Title              string      `json:"title"`
 	SubTitle           string      `json:"sub_title"`

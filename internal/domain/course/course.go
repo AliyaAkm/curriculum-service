@@ -41,6 +41,12 @@ type Course struct {
 	Topic            topic.Topic
 }
 
+type Subscription struct {
+	ID       uuid.UUID `gorm:"column:id"`
+	UserID   uuid.UUID `gorm:"column:user_id"`
+	CourseID uuid.UUID `gorm:"column:course_id"`
+}
+
 type User struct {
 	ID           uuid.UUID `gorm:"column:id;primary_key"`
 	Email        string
@@ -70,4 +76,7 @@ func (Course) TableName() string {
 }
 func (CourseTag) TableName() string {
 	return "course_course_tags"
+}
+func (Subscription) TableName() string {
+	return "course_subscription"
 }

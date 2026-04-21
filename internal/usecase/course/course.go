@@ -40,6 +40,15 @@ func (u *UseCase) CreateCourse(ctx context.Context, value *course.Course) (*cour
 	return u.repo.GetCourseByID(ctx, id)
 }
 
+func (u *UseCase) CreateSubscription(ctx context.Context, value *course.Subscription) (*course.Subscription, error) {
+	value.ID = uuid.New()
+	err := u.repo.CreateSubscription(ctx, value)
+	if err != nil {
+		return nil, err
+	}
+	return u.repo.GetSubscriptionByID(ctx, value.ID)
+}
+
 func (u *UseCase) GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error) {
 	courseValue, err := u.repo.GetCourseByID(ctx, id)
 	if err != nil {

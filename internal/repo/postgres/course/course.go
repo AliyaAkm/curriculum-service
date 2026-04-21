@@ -108,6 +108,24 @@ func (r *Repo) CreateCourse(ctx context.Context, value *course.Course) (uuid.UUI
 
 	return value.ID, nil
 }
+
+func (r *Repo) CreateSubscription(ctx context.Context, value *course.Subscription) error {
+	err := r.db.WithContext(ctx).Create(value).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repo) GetSubscriptionByID(ctx context.Context, id uuid.UUID) (*course.Subscription, error) {
+	var entity course.Subscription
+	err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &entity, nil
+}
+
 func (r *Repo) UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error {
 	err := r.db.WithContext(ctx).Where("id = ?", id).Updates(value).Error
 	if err != nil {

@@ -11,6 +11,8 @@ import (
 type Repository interface {
 	GetAllCourses(ctx context.Context, query dtocourse.GetCoursesQuery) ([]course.Course, error)
 	CreateCourse(ctx context.Context, value *course.Course) (uuid.UUID, error)
+	CreateSubscription(ctx context.Context, value *course.Subscription) error
+	GetSubscriptionByID(ctx context.Context, id uuid.UUID) (*course.Subscription, error)
 	GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error)
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
 	UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error

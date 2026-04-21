@@ -2,6 +2,7 @@ package router
 
 import (
 	"curriculum-service/internal/http/handlers/course"
+	"curriculum-service/internal/http/handlers/coursepoint"
 	"curriculum-service/internal/http/handlers/durationcategory"
 	"curriculum-service/internal/http/handlers/lesson"
 	"curriculum-service/internal/http/handlers/level"
@@ -26,6 +27,7 @@ type Handler struct {
 	Module           *module.Handler
 	Lesson           *lesson.Handler
 	Review           *review.Handler
+	CoursePoint      *coursepoint.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -49,6 +51,9 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.DELETE("/course/:id", handler.Course.DeleteCourse)
 	r.PUT("/course/:id", handler.Course.UpdateCourse)
 
+	// course subscription
+	r.POST("/course/enrollment", handler.Course.CreateSubscription)
+
 	// модули
 	r.GET("/module", handler.Module.GetAllModules)
 	r.POST("/module", handler.Module.CreateModule)
@@ -71,6 +76,12 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.PUT("/review/:id", handler.Review.UpdateReview)
 	r.DELETE("/review/:id", handler.Review.DeleteReview)
 	r.GET("/course/review/:id", handler.Review.GetAllReviewsByCourseID)
+
+	// coursePoint
+	r.POST("/point", handler.CoursePoint.CreateCoursePoint)
+	r.PUT("/point/:id", handler.CoursePoint.UpdateCoursePoint)
+	r.DELETE("/point/:id", handler.CoursePoint.DeleteCoursePoint)
+	r.GET("/leaderboard/:id", handler.CoursePoint.GetCoursePointByCourseID)
 
 	return r
 }

@@ -47,6 +47,20 @@ func (h *Handler) CreateCourse(c *gin.Context) {
 	respond.JSON(c, http.StatusOK, convertCourse(result))
 }
 
+func (h *Handler) CreateSubscription(c *gin.Context) {
+	request := dtocourse.SubscriptionRequest{}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid body")
+		return
+	}
+	result, err := h.client.CreateSubscription(c.Request.Context(), convertSubscriptionRequest(request))
+	if err != nil {
+		writeCatalogError(c, err)
+		return
+	}
+	respond.JSON(c, http.StatusOK, convertSubscription(result))
+}
+
 func (h *Handler) GetCourseByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -181,6 +195,14 @@ func convertCourses(resp []domaincourse.Course) []dtocourse.Courses {
 	return courses
 }
 
+func convertSubscription(resp *domaincourse.Subscription) dtocourse.Subscription {
+	return dtocourse.Subscription{
+		ID:       resp.ID,
+		UserID:   resp.UserID,
+		CourseID: resp.CourseID,
+	}
+}
+
 func convertCourse(resp *domaincourse.Course) dtocourse.Courses {
 	tags := make([]dtotag.Tag, len(resp.Tags))
 	roles := make([]dtocourse.Role, len(resp.Author.Roles))
@@ -248,6 +270,13 @@ func convertCourse(resp *domaincourse.Course) dtocourse.Courses {
 			Code: resp.Topic.Code,
 		},
 		LearningOutcomes: resp.LearningOutcomes,
+	}
+}
+
+func convertSubscriptionRequest(resp dtocourse.SubscriptionRequest) *domaincourse.Subscription {
+	return &domaincourse.Subscription{
+		UserID:   resp.UserID,
+		CourseID: resp.CourseID,
 	}
 }
 
