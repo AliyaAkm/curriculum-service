@@ -45,8 +45,6 @@ func convertOrderRequest(resp order.OrderRequest) *domainorder.Order {
 	return &domainorder.Order{
 		UserID:   resp.UserID,
 		CourseID: resp.CourseID,
-		Amount:   resp.Amount,
-		Currency: resp.Currency,
 	}
 }
 

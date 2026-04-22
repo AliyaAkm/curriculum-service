@@ -17,6 +17,13 @@ func (u *UseCase) CreateOrder(ctx context.Context, value *order.Order) (*order.O
 	}
 	value.StatusID = status.ID
 
+	price, err := u.priceRepo.GetPriceByCourseID(ctx, value.CourseID)
+	if err != nil {
+		return nil, err
+	}
+	value.Amount = price.Amount
+	value.Currency = price.Currency
+
 	err = u.repo.CreateOrder(ctx, value)
 	if err != nil {
 		return nil, err

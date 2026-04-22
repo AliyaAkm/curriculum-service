@@ -23,6 +23,7 @@ import (
 	modulerepo "curriculum-service/internal/repo/postgres/module"
 	orderrepo "curriculum-service/internal/repo/postgres/order"
 	orderstatusrepo "curriculum-service/internal/repo/postgres/orderstatus"
+	pricerepo "curriculum-service/internal/repo/postgres/price"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
@@ -132,10 +133,11 @@ func main() {
 
 	// order status
 	orderstatusRepo := orderstatusrepo.NewRepo(db)
+	priceRepo := pricerepo.New(db)
 
 	// order
 	orderRepo := orderrepo.NewRepo(db)
-	orderUseCase := orderusecase.New(orderRepo, orderstatusRepo)
+	orderUseCase := orderusecase.New(orderRepo, orderstatusRepo, priceRepo)
 	orderHandler := orderhandler.New(orderUseCase)
 
 	handler := router.Handler{

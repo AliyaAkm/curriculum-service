@@ -4,6 +4,7 @@ import (
 	"context"
 	"curriculum-service/internal/domain/order"
 	"curriculum-service/internal/domain/orderstatus"
+	"curriculum-service/internal/domain/price"
 	"github.com/google/uuid"
 )
 
@@ -13,4 +14,7 @@ type Repository interface {
 }
 type StatusRepository interface {
 	GetOrderStatusByCode(ctx context.Context, code string) (*orderstatus.OrderStatus, error)
+}
+type PriceRepository interface {
+	GetPriceByCourseID(ctx context.Context, courseID uuid.UUID) (*price.CoursePrice, error)
 }
