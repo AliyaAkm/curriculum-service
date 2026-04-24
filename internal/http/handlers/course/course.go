@@ -85,6 +85,7 @@ func (h *Handler) DeleteCourse(c *gin.Context) {
 	err = h.client.DeleteCourse(c.Request.Context(), id)
 	if err != nil {
 		writeCatalogError(c, err)
+		return
 	}
 	c.Status(http.StatusNoContent)
 }

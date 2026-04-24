@@ -9,7 +9,6 @@ import (
 	levelhandler "curriculum-service/internal/http/handlers/level"
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
-	orderhandler "curriculum-service/internal/http/handlers/order"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
 	statushandler "curriculum-service/internal/http/handlers/status"
 	taghandler "curriculum-service/internal/http/handlers/tag"
@@ -21,9 +20,6 @@ import (
 	levelrepo "curriculum-service/internal/repo/postgres/level"
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
-	orderrepo "curriculum-service/internal/repo/postgres/order"
-	orderstatusrepo "curriculum-service/internal/repo/postgres/orderstatus"
-	pricerepo "curriculum-service/internal/repo/postgres/price"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
@@ -35,7 +31,6 @@ import (
 	levelusecase "curriculum-service/internal/usecase/level"
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
-	orderusecase "curriculum-service/internal/usecase/order"
 	reviewusecase "curriculum-service/internal/usecase/review"
 	statususecase "curriculum-service/internal/usecase/status"
 	tagusecase "curriculum-service/internal/usecase/tag"
@@ -131,15 +126,6 @@ func main() {
 	coursePointUseCase := coursepointusecase.New(coursePointRepo)
 	coursePointHandler := coursepointhandler.New(coursePointUseCase)
 
-	// order status
-	orderstatusRepo := orderstatusrepo.NewRepo(db)
-	priceRepo := pricerepo.New(db)
-
-	// order
-	orderRepo := orderrepo.NewRepo(db)
-	orderUseCase := orderusecase.New(orderRepo, orderstatusRepo, priceRepo)
-	orderHandler := orderhandler.New(orderUseCase)
-
 	handler := router.Handler{
 		Status:           statusHandler,
 		Level:            levelHandler,
@@ -152,7 +138,6 @@ func main() {
 		Lesson:           lessonHandler,
 		Review:           reviewHandler,
 		CoursePoint:      coursePointHandler,
-		Order:            orderHandler,
 	}
 
 	engine := router.New(

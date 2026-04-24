@@ -3,6 +3,7 @@ package course
 import (
 	"context"
 	"curriculum-service/internal/domain/course"
+	"curriculum-service/internal/domain/price"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -149,6 +150,16 @@ func (r *Repo) DeleteCourse(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return nil
+}
+
+func (r *Repo) DeleteCoursePrice(ctx context.Context, courseID uuid.UUID) error {
+	var entity price.CoursePrice
+	err := r.db.WithContext(ctx).Delete(&entity, "course_id = ?", courseID).Error
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (r *Repo) courseQuery(ctx context.Context) *gorm.DB {

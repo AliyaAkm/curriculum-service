@@ -8,3 +8,7 @@ type CoursePrice struct {
 	Amount   int       `gorm:"column:amount"`
 	Currency string    `gorm:"column:currency"`
 }
+
+func (CoursePrice) TableName() string {
+	return "course_prices"
+}

@@ -66,6 +66,10 @@ func (u *UseCase) GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Cour
 }
 
 func (u *UseCase) DeleteCourse(ctx context.Context, id uuid.UUID) error {
+	err := u.repo.DeleteCoursePrice(ctx, id)
+	if err != nil {
+		return err
+	}
 	return u.repo.DeleteCourse(ctx, id)
 }
 func (u *UseCase) UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) (*course.Course, error) {
