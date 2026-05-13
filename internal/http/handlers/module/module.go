@@ -115,6 +115,7 @@ func convertModules(resp []module.Module) []dtomodule.Modules {
 			Title:     resp[i].Title,
 			Summary:   resp[i].Description,
 			Locale:    resp[i].Locale,
+			Position:  resp[i].Position,
 			CreatedAt: resp[i].CreatedAt,
 			UpdatedAt: resp[i].UpdatedAt,
 		}
@@ -128,6 +129,7 @@ func convertModule(resp *module.Module) dtomodule.Modules {
 		Title:     resp.Title,
 		Summary:   resp.Description,
 		Locale:    resp.Locale,
+		Position:  resp.Position,
 		CreatedAt: resp.CreatedAt,
 		UpdatedAt: resp.UpdatedAt,
 	}

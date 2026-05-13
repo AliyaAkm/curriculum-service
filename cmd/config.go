@@ -28,10 +28,19 @@ type DBConfig struct {
 	HealthCheckPeriod time.Duration `env:"HEALTH_CHECK_PERIOD"`
 }
 
+type JWTConfig struct {
+	Secret     string        `env:"SECRET"`
+	Issuer     string        `env:"ISSUER"`
+	Audience   string        `env:"AUDIENCE"`
+	AccessTTL  time.Duration `env:"ACCESS_TTL"`
+	RefreshTTL time.Duration `env:"REFRESH_TTL"`
+}
+
 type Config struct {
 	HTTPAddr string     `env:"HTTP_ADDR" envDefault:":8080"`
 	HTTP     HTTPConfig `envPrefix:"HTTP_"`
 	DB       DBConfig   `envPrefix:"DB_"`
+	JWT      JWTConfig  `envPrefix:"JWT_"`
 }
 
 func ReadEnv() (*Config, error) {

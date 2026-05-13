@@ -14,4 +14,5 @@ type client interface {
 	GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error)
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
 	UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) (*course.Course, error)
+	GetCourseForUser(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (*course.CourseForUser, error)
 }

@@ -10,6 +10,7 @@ import (
 	"curriculum-service/internal/http/handlers/module"
 	"curriculum-service/internal/http/handlers/review"
 	"curriculum-service/internal/http/handlers/status"
+	"curriculum-service/internal/http/handlers/streak"
 	"curriculum-service/internal/http/handlers/tag"
 	"curriculum-service/internal/http/handlers/topic"
 
@@ -28,6 +29,7 @@ type Handler struct {
 	Lesson           *lesson.Handler
 	Review           *review.Handler
 	CoursePoint      *coursepoint.Handler
+	Streak           *streak.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -82,6 +84,9 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.PUT("/point/:id", handler.CoursePoint.UpdateCoursePoint)
 	r.DELETE("/point/:id", handler.CoursePoint.DeleteCoursePoint)
 	r.GET("/leaderboard/:id", handler.CoursePoint.GetCoursePointByCourseID)
+
+	// daily streak
+	r.GET("/streak", handler.Streak.GetStreak)
 
 	return r
 }

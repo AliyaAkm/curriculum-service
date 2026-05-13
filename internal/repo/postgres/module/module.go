@@ -35,6 +35,24 @@ func (r *Repo) GetAllModules(ctx context.Context, query dtomodule.GetModuleQuery
 	return modules, nil
 }
 
+func (r *Repo) GetModuleByCourseID(ctx context.Context, courseID uuid.UUID) ([]module.Module, error) {
+	var modules []module.Module
+	err := r.db.WithContext(ctx).Where("course_id = ?", courseID).Order("position ASC").Find(&modules).Error
+	if err != nil {
+		return nil, err
+	}
+	return modules, nil
+}
+
+func (r *Repo) GetLimitedModulesByCourseID(ctx context.Context, courseID uuid.UUID, limit int) ([]module.Module, error) {
+	var modules []module.Module
+	err := r.db.WithContext(ctx).Where("course_id = ?", courseID).Order("position ASC").Limit(limit).Find(&modules).Error
+	if err != nil {
+		return nil, err
+	}
+	return modules, nil
+}
+
 func (r *Repo) CreateModule(ctx context.Context, value *module.Module) error {
 	err := r.db.WithContext(ctx).Create(value).Error
 	if err != nil {

@@ -3,6 +3,7 @@ package course
 import (
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
+	dtomodule "curriculum-service/internal/http/dto/module"
 	"curriculum-service/internal/http/dto/status"
 	"curriculum-service/internal/http/dto/tag"
 	"curriculum-service/internal/http/dto/topic"
@@ -32,6 +33,12 @@ type Courses struct {
 	Tags             []tag.Tag                         `json:"tags"`
 	Topic            topic.Topic                       `json:"topic"`
 	LearningOutcomes []string                          `json:"learning_outcome"`
+}
+
+type CourseForUser struct {
+	Course          Courses            `json:"course"`
+	Modules         []dtomodule.Module `json:"modules"`
+	HasSubscription bool               `json:"has_subscription"`
 }
 
 type Subscription struct {

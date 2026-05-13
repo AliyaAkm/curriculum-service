@@ -110,6 +110,7 @@ func (r *Repo) CreateCourse(ctx context.Context, value *course.Course) (uuid.UUI
 	return value.ID, nil
 }
 
+// создать подписку пользователю при оплате
 func (r *Repo) CreateSubscription(ctx context.Context, value *course.Subscription) error {
 	err := r.db.WithContext(ctx).Create(value).Error
 	if err != nil {
@@ -118,6 +119,7 @@ func (r *Repo) CreateSubscription(ctx context.Context, value *course.Subscriptio
 	return nil
 }
 
+// получить подписку по айди подписке
 func (r *Repo) GetSubscriptionByID(ctx context.Context, id uuid.UUID) (*course.Subscription, error) {
 	var entity course.Subscription
 	err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error
@@ -125,6 +127,16 @@ func (r *Repo) GetSubscriptionByID(ctx context.Context, id uuid.UUID) (*course.S
 		return nil, err
 	}
 	return &entity, nil
+}
+
+// проверить подписку
+func (r *Repo) HasSubscription(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&course.Subscription{}).Where("user_id = ? AND course_id = ?", userID, courseID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (r *Repo) UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error {

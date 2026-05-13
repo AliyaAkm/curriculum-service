@@ -11,6 +11,7 @@ import (
 	modulehandler "curriculum-service/internal/http/handlers/module"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
 	statushandler "curriculum-service/internal/http/handlers/status"
+	streakhandler "curriculum-service/internal/http/handlers/streak"
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	courserepo "curriculum-service/internal/repo/postgres/course"
@@ -22,6 +23,7 @@ import (
 	modulerepo "curriculum-service/internal/repo/postgres/module"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
+	streakrepo "curriculum-service/internal/repo/postgres/streak"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
 	courseusecase "curriculum-service/internal/usecase/course"
@@ -33,6 +35,7 @@ import (
 	moduleusecase "curriculum-service/internal/usecase/module"
 	reviewusecase "curriculum-service/internal/usecase/review"
 	statususecase "curriculum-service/internal/usecase/status"
+	streakusecase "curriculum-service/internal/usecase/streak"
 	tagusecase "curriculum-service/internal/usecase/tag"
 	topicusecase "curriculum-service/internal/usecase/topic"
 	"errors"
@@ -74,7 +77,19 @@ func main() {
 		log.Fatal("error connecting to the database: ", err)
 	}
 
+	jwtMgr := middleware.New(
+		[]byte(cfg.JWT.Secret),
+		cfg.JWT.Issuer,
+		cfg.JWT.Audience,
+		cfg.JWT.AccessTTL,
+	)
+
 	validate := validator.New()
+
+	// daily streak
+	streakRepo := streakrepo.NewRepo(db)
+	streakUseCase := streakusecase.New(streakRepo)
+	streakHandler := streakhandler.NewHandler(streakUseCase, jwtMgr)
 
 	// status course
 	statusRepo := statusrepo.NewRepo(db)
@@ -106,10 +121,6 @@ func main() {
 	reviewUseCase := reviewusecase.New(reviewRepo)
 	reviewHandler := reviewhandler.NewHandler(reviewUseCase, validate)
 
-	courseRepo := courserepo.NewRepo(db)
-	courseUseCase := courseusecase.New(courseRepo, reviewRepo)
-	courseHandler := coursehandler.New(courseUseCase)
-
 	LocaleRepo := localerepo.NewRepo(db)
 	localeUseCase := localeusecase.New(LocaleRepo)
 	localeHandler := localehandler.NewHandler(localeUseCase)
@@ -117,6 +128,10 @@ func main() {
 	moduleRepo := modulerepo.New(db)
 	moduleUseCase := moduleusecase.New(moduleRepo)
 	moduleHandler := modulehandler.NewHandler(moduleUseCase)
+
+	courseRepo := courserepo.NewRepo(db)
+	courseUseCase := courseusecase.New(courseRepo, reviewRepo, moduleRepo)
+	courseHandler := coursehandler.New(courseUseCase, jwtMgr)
 
 	lessonRepo := lessonrepo.NewRepo(db)
 	lessonUseCase := lessonusecase.New(lessonRepo)
@@ -138,6 +153,7 @@ func main() {
 		Lesson:           lessonHandler,
 		Review:           reviewHandler,
 		CoursePoint:      coursePointHandler,
+		Streak:           streakHandler,
 	}
 
 	engine := router.New(

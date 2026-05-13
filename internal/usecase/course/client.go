@@ -3,6 +3,7 @@ package course
 import (
 	"context"
 	"curriculum-service/internal/domain/course"
+	"curriculum-service/internal/domain/module"
 	"curriculum-service/internal/domain/review"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ type Repository interface {
 	CreateCourse(ctx context.Context, value *course.Course) (uuid.UUID, error)
 	CreateSubscription(ctx context.Context, value *course.Subscription) error
 	GetSubscriptionByID(ctx context.Context, id uuid.UUID) (*course.Subscription, error)
+	HasSubscription(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (bool, error)
 	GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error)
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
 	DeleteCoursePrice(ctx context.Context, id uuid.UUID) error
@@ -20,4 +22,8 @@ type Repository interface {
 }
 type ReviewRepository interface {
 	GetAllReviewsByCourseID(ctx context.Context, courseID uuid.UUID) ([]review.CourseReview, error)
+}
+type ModuleRepository interface {
+	GetModuleByCourseID(ctx context.Context, courseID uuid.UUID) ([]module.Module, error)
+	GetLimitedModulesByCourseID(ctx context.Context, courseID uuid.UUID, limit int) ([]module.Module, error)
 }

@@ -3,13 +3,16 @@ package course
 import (
 	"curriculum-service/internal/domain"
 	domaincourse "curriculum-service/internal/domain/course"
+	"curriculum-service/internal/domain/module"
 	domaintag "curriculum-service/internal/domain/tag"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
+	dtomodule "curriculum-service/internal/http/dto/module"
 	"curriculum-service/internal/http/dto/status"
 	dtotag "curriculum-service/internal/http/dto/tag"
 	"curriculum-service/internal/http/dto/topic"
+	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -62,17 +65,22 @@ func (h *Handler) CreateSubscription(c *gin.Context) {
 }
 
 func (h *Handler) GetCourseByID(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	userID := middleware.GetUserID(h.jwtMgr, c)
+	if userID == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+	courseID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		respond.JSON(c, http.StatusBadRequest, "invalid course id")
 		return
 	}
-	result, err := h.client.GetCourseByID(c.Request.Context(), id)
+	course, err := h.client.GetCourseForUser(c.Request.Context(), *userID, courseID)
 	if err != nil {
 		writeCatalogError(c, err)
 		return
 	}
-	respond.JSON(c, http.StatusOK, convertCourse(result))
+	respond.JSON(c, http.StatusOK, convertCourseForUser(course))
 
 }
 
@@ -202,6 +210,28 @@ func convertSubscription(resp *domaincourse.Subscription) dtocourse.Subscription
 		UserID:   resp.UserID,
 		CourseID: resp.CourseID,
 	}
+}
+
+func convertCourseForUser(resp *domaincourse.CourseForUser) dtocourse.CourseForUser {
+	return dtocourse.CourseForUser{
+		Course:          convertCourse(resp.Course),
+		Modules:         convertModules(resp.Modules),
+		HasSubscription: resp.HasSubscription,
+	}
+}
+func convertModules(resp []module.Module) []dtomodule.Module {
+	modules := make([]dtomodule.Module, len(resp))
+
+	for i := range resp {
+		modules[i] = dtomodule.Module{
+			ID:          resp[i].ID,
+			CourseID:    resp[i].CourseID,
+			Title:       resp[i].Title,
+			Description: resp[i].Description,
+			Locale:      resp[i].Locale,
+		}
+	}
+	return modules
 }
 
 func convertCourse(resp *domaincourse.Course) dtocourse.Courses {

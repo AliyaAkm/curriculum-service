@@ -11,6 +11,7 @@ type Module struct {
 	Title       string    `gorm:"column:title"`
 	Description string    `gorm:"column:description"`
 	Locale      string    `gorm:"locale"`
+	Position    int       `gorm:"column:position"`
 	CreatedAt   time.Time `gorm:"column:created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at"`
 }

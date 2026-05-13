@@ -9,4 +9,6 @@ var (
 	ErrReviewNotFound      = errors.New("review not found")
 	ErrInvalidRating       = errors.New("rating must be between 1 and 5")
 	ErrCourseNotFound      = errors.New("course not found")
+	ErrInactiveUser        = errors.New("user inactive")
+	ErrInvalidToken        = errors.New("token inactive")
 )

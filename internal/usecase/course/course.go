@@ -3,6 +3,7 @@ package course
 import (
 	"context"
 	"curriculum-service/internal/domain/course"
+	"curriculum-service/internal/domain/module"
 	"curriculum-service/internal/domain/review"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"github.com/google/uuid"
@@ -47,6 +48,35 @@ func (u *UseCase) CreateSubscription(ctx context.Context, value *course.Subscrip
 		return nil, err
 	}
 	return u.repo.GetSubscriptionByID(ctx, value.ID)
+}
+
+func (u *UseCase) GetCourseForUser(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (*course.CourseForUser, error) {
+	courseEntity, err := u.repo.GetCourseByID(ctx, courseID)
+	if err != nil {
+		return nil, err
+	}
+	subscription, err := u.repo.HasSubscription(ctx, userID, courseID)
+	if err != nil {
+		return nil, err
+	}
+
+	var modules []module.Module
+	if subscription {
+		modules, err = u.moduleRepo.GetModuleByCourseID(ctx, courseID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		modules, err = u.moduleRepo.GetLimitedModulesByCourseID(ctx, courseID, 2)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &course.CourseForUser{
+		Course:          courseEntity,
+		Modules:         modules,
+		HasSubscription: subscription,
+	}, nil
 }
 
 func (u *UseCase) GetCourseByID(ctx context.Context, id uuid.UUID) (*course.Course, error) {

@@ -3,6 +3,7 @@ package course
 import (
 	"curriculum-service/internal/domain/durationcategory"
 	"curriculum-service/internal/domain/level"
+	"curriculum-service/internal/domain/module"
 	"curriculum-service/internal/domain/status"
 	"curriculum-service/internal/domain/tag"
 	"curriculum-service/internal/domain/topic"
@@ -39,6 +40,12 @@ type Course struct {
 	Author           User
 	Tags             []tag.Tag `gorm:"many2many:course_course_tags;"`
 	Topic            topic.Topic
+}
+
+type CourseForUser struct {
+	Course          *Course
+	Modules         []module.Module
+	HasSubscription bool
 }
 
 type Subscription struct {
