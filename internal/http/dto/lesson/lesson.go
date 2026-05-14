@@ -8,6 +8,7 @@ import (
 type Lesson struct { // course_lessons
 	ID       uuid.UUID `json:"id"`
 	ModuleID uuid.UUID `json:"module_id"`
+	Position int       `json:"position"`
 
 	Title         Locale   `json:"title"`
 	Summary       Locale   `json:"summary"`

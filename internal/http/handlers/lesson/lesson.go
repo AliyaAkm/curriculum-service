@@ -169,6 +169,7 @@ func convertLesson(resp *lesson.LessonModel) lesson2.Lesson {
 	item := lesson2.Lesson{
 		ID:              resp.ID,
 		ModuleID:        resp.ModuleID,
+		Position:        resp.Position,
 		DurationMinutes: resp.DurationMinutes,
 		XPReward:        resp.XPReward,
 		CodeSnippet:     resp.CodeSnippet,
@@ -263,6 +264,7 @@ func convertLessonRequest(req lesson2.LessonRequest, lessonID uuid.UUID, locales
 	}
 	return &lesson.LessonModel{
 		ModuleID:        req.ModuleID,
+		Position:        req.Position,
 		DurationMinutes: req.DurationMinutes,
 		XPReward:        req.XPReward,
 		CodeSnippet:     stringPtr(req.CodeSnippet),

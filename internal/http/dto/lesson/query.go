@@ -11,6 +11,7 @@ import (
 
 type LessonRequest struct {
 	ModuleID        uuid.UUID `json:"module_id"`
+	Position        int       `json:"position"`
 	DurationMinutes int       `json:"duration_minutes"`
 	XPReward        int       `json:"xp_reward"`
 	CodeSnippet     string    `json:"code_snippet"`
@@ -28,6 +29,7 @@ type CreateLessonRequest struct {
 	Outcomes        []outcome.LessonOutcomeModel             `json:"outcomes"`
 	TheoryContents  []theorycontent.LessonTheoryContentModel `json:"theory_contents"`
 	KeyPoints       []keypoint.LessonKeyPointModel           `json:"key_points"`
+	Position        int                                      `json:"position"`
 	DurationMinutes int                                      `json:"duration_minutes"`
 	XPReward        int                                      `json:"xp_reward"`
 	CodeSnippet     string                                   `json:"code_snippet"`
@@ -40,6 +42,7 @@ type UpdateLessonRequest struct {
 	Outcomes        []outcome.LessonOutcomeModel             `json:"outcomes"`
 	TheoryContents  []theorycontent.LessonTheoryContentModel `json:"theory_contents"`
 	KeyPoints       []keypoint.LessonKeyPointModel           `json:"key_points"`
+	Position        int                                      `json:"position"`
 	DurationMinutes int                                      `json:"duration_minutes"`
 	XPReward        int                                      `json:"xp_reward"`
 	CodeSnippet     string                                   `json:"code_snippet"`

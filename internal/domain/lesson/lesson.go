@@ -13,6 +13,7 @@ import (
 type LessonModel struct {
 	ID              uuid.UUID `gorm:"column:id;type:uuid;primaryKey"`
 	ModuleID        uuid.UUID `gorm:"column:module_id;type:uuid"`
+	Position        int       `gorm:"column:position"`
 	DurationMinutes int       `gorm:"column:duration_minutes"`
 	XPReward        int       `gorm:"column:xp_reward"`
 	CodeSnippet     *string   `gorm:"column:code_snippet"`

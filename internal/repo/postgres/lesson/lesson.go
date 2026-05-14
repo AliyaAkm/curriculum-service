@@ -23,6 +23,7 @@ func (r *Repo) GetAllLessons(ctx context.Context, moduleID uuid.UUID) ([]lessond
 		Preload("Outcomes.Locale").
 		Preload("TheoryContents.Locale").
 		Preload("KeyPoints.Locale").
+		Order("position ASC").
 		Order("created_at ASC").
 		Find(&rows).Error
 	if err != nil {
@@ -136,6 +137,7 @@ func (r *Repo) CreateLesson(ctx context.Context, value *lessondomain.LessonModel
 		lesson := lessondomain.LessonModel{
 			ID:              value.ID,
 			ModuleID:        value.ModuleID,
+			Position:        value.Position,
 			DurationMinutes: value.DurationMinutes,
 			XPReward:        value.XPReward,
 			CodeSnippet:     value.CodeSnippet,
@@ -198,6 +200,7 @@ func (r *Repo) UpdateLesson(ctx context.Context, id uuid.UUID, value *lessondoma
 			Where("id = ?", id).
 			Updates(map[string]interface{}{
 				"module_id":        value.ModuleID,
+				"position":         value.Position,
 				"duration_minutes": value.DurationMinutes,
 				"xp_reward":        value.XPReward,
 				"code_snippet":     value.CodeSnippet,
