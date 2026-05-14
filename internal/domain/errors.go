@@ -11,4 +11,5 @@ var (
 	ErrCourseNotFound      = errors.New("course not found")
 	ErrInactiveUser        = errors.New("user inactive")
 	ErrInvalidToken        = errors.New("token inactive")
+	ErrForbidden           = errors.New("forbidden")
 )

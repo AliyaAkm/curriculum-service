@@ -10,6 +10,7 @@ import (
 	"curriculum-service/internal/domain/theorycontent"
 	"curriculum-service/internal/domain/title"
 	lesson2 "curriculum-service/internal/http/dto/lesson"
+	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,6 @@ import (
 )
 
 func (h *Handler) GetAllLessons(c *gin.Context) {
-
 	id := c.Param("id")
 	if id == "" {
 		respond.JSON(c, http.StatusBadRequest, "empty module id")
@@ -30,7 +30,24 @@ func (h *Handler) GetAllLessons(c *gin.Context) {
 		respond.JSON(c, http.StatusBadRequest, "invalid module id")
 		return
 	}
-	resp, err := h.client.GetAllLessons(c.Request.Context(), uuidID)
+
+	claims := middleware.GetClaims(h.jwtMgr, c)
+	if claims == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	resp, err := h.client.GetAllLessonsForUser(
+		c.Request.Context(),
+		userID,
+		uuidID,
+		middleware.ClaimsHasRole(claims, middleware.RoleAdmin),
+	)
 	if err != nil {
 		writeCatalogError(c, err)
 		return
@@ -69,7 +86,23 @@ func (h *Handler) GetLessonByID(c *gin.Context) {
 		return
 	}
 
-	result, err := h.client.GetLessonByID(c.Request.Context(), id)
+	claims := middleware.GetClaims(h.jwtMgr, c)
+	if claims == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	result, err := h.client.GetLessonByIDForUser(
+		c.Request.Context(),
+		userID,
+		id,
+		middleware.ClaimsHasRole(claims, middleware.RoleAdmin),
+	)
 	if err != nil {
 		writeCatalogError(c, err)
 		return
@@ -110,6 +143,8 @@ func writeCatalogError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation):
 		respond.Error(c, http.StatusBadRequest, "validation", "invalid request query")
+	case errors.Is(err, domain.ErrForbidden):
+		respond.Error(c, http.StatusForbidden, "forbidden", domain.ErrForbidden.Error())
 	default:
 		_ = c.Error(err)
 		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())

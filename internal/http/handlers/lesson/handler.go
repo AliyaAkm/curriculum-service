@@ -1,13 +1,17 @@
 package lesson
 
+import "curriculum-service/internal/http/middleware"
+
 type Handler struct {
 	client      client
 	localClient localClient
+	jwtMgr      *middleware.Manager
 }
 
-func NewHandler(client client, localClient localClient) *Handler {
+func NewHandler(client client, localClient localClient, jwtMgr *middleware.Manager) *Handler {
 	return &Handler{
 		client:      client,
 		localClient: localClient,
+		jwtMgr:      jwtMgr,
 	}
 }

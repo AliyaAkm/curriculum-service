@@ -49,6 +49,88 @@ func (r *Repo) GetLessonByID(ctx context.Context, id uuid.UUID) (*lessondomain.L
 
 	return &lessonEntity, nil
 }
+
+func (r *Repo) GetCourseIDByModuleID(ctx context.Context, moduleID uuid.UUID) (uuid.UUID, error) {
+	var courseID string
+	err := r.db.WithContext(ctx).
+		Table("course_modules").
+		Select("course_id").
+		Where("id = ?", moduleID).
+		Scan(&courseID).Error
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return uuid.Parse(courseID)
+}
+
+func (r *Repo) GetLessonAccessInfo(ctx context.Context, lessonID uuid.UUID) (uuid.UUID, uuid.UUID, int, error) {
+	var row struct {
+		CourseID       string `gorm:"column:course_id"`
+		ModuleID       string `gorm:"column:module_id"`
+		ModulePosition int    `gorm:"column:module_position"`
+	}
+
+	err := r.db.WithContext(ctx).
+		Table("course_lessons cl").
+		Select("cm.course_id AS course_id, cl.module_id AS module_id, COALESCE(cm.position, 0) AS module_position").
+		Joins("INNER JOIN course_modules cm ON cm.id = cl.module_id").
+		Where("cl.id = ?", lessonID).
+		Scan(&row).Error
+	if err != nil {
+		return uuid.Nil, uuid.Nil, 0, err
+	}
+
+	courseID, err := uuid.Parse(row.CourseID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, 0, err
+	}
+	moduleID, err := uuid.Parse(row.ModuleID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, 0, err
+	}
+
+	return courseID, moduleID, row.ModulePosition, nil
+}
+
+func (r *Repo) HasSubscription(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("course_subscription").
+		Where("user_id = ? AND course_id = ?", userID, courseID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *Repo) IsModuleInFreePreview(ctx context.Context, courseID uuid.UUID, moduleID uuid.UUID, limit int) (bool, error) {
+	var allowed bool
+	err := r.db.WithContext(ctx).
+		Raw(`
+			SELECT EXISTS (
+				SELECT 1
+				FROM course_modules
+				WHERE course_id = ?
+				  AND id = ?
+				  AND COALESCE(position, 0) IN (
+					SELECT position
+					FROM course_modules
+					WHERE course_id = ?
+					  AND position IS NOT NULL
+					GROUP BY position
+					ORDER BY position ASC
+					LIMIT ?
+				  )
+			)
+		`, courseID, moduleID, courseID, limit).
+		Scan(&allowed).Error
+	if err != nil {
+		return false, err
+	}
+	return allowed, nil
+}
+
 func (r *Repo) CreateLesson(ctx context.Context, value *lessondomain.LessonModel) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		lesson := lessondomain.LessonModel{

@@ -4,6 +4,7 @@ import (
 	"curriculum-service/internal/domain"
 	"curriculum-service/internal/domain/module"
 	dtomodule "curriculum-service/internal/http/dto/module"
+	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,24 @@ func (h *Handler) GetAllModules(c *gin.Context) {
 		respond.JSON(c, http.StatusBadRequest, "invalid query params")
 		return
 	}
-	result, err := h.client.GetAllModules(c.Request.Context(), query)
+
+	claims := middleware.GetClaims(h.jwtMgr, c)
+	if claims == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	result, err := h.client.GetAllModulesForUser(
+		c.Request.Context(),
+		userID,
+		query,
+		middleware.ClaimsHasRole(claims, middleware.RoleAdmin),
+	)
 	if err != nil {
 		writeModuleError(c, err)
 		return
@@ -49,7 +67,23 @@ func (h *Handler) GetModuleByID(c *gin.Context) {
 		return
 	}
 
-	result, err := h.client.GetModuleByID(c.Request.Context(), id)
+	claims := middleware.GetClaims(h.jwtMgr, c)
+	if claims == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	result, err := h.client.GetModuleByIDForUser(
+		c.Request.Context(),
+		userID,
+		id,
+		middleware.ClaimsHasRole(claims, middleware.RoleAdmin),
+	)
 	if err != nil {
 		writeModuleError(c, err)
 		return
@@ -100,6 +134,8 @@ func writeModuleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation):
 		respond.Error(c, http.StatusBadRequest, "validation", "invalid request query")
+	case errors.Is(err, domain.ErrForbidden):
+		respond.Error(c, http.StatusForbidden, "forbidden", domain.ErrForbidden.Error())
 	default:
 		c.Error(err)
 		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())

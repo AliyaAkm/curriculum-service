@@ -8,4 +8,5 @@ type Module struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Locale      string    `json:"locale"`
+	Position    int       `json:"position"`
 }

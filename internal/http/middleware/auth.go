@@ -46,6 +46,20 @@ func New(secret []byte, issuer, audience string, ttl time.Duration) *Manager {
 }
 
 func GetUserID(jwtMgr *Manager, c *gin.Context) *uuid.UUID {
+	claims := GetClaims(jwtMgr, c)
+	if claims == nil {
+		return nil
+	}
+
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return nil
+	}
+
+	return &userID
+}
+
+func GetClaims(jwtMgr *Manager, c *gin.Context) *Claims {
 	tokenStr := bearerToken(c.GetHeader("Authorization"))
 	if tokenStr == "" {
 		return nil
@@ -56,12 +70,19 @@ func GetUserID(jwtMgr *Manager, c *gin.Context) *uuid.UUID {
 		return nil
 	}
 
-	userID, err := uuid.Parse(claims.Subject)
-	if err != nil {
-		return nil
-	}
+	return claims
+}
 
-	return &userID
+func ClaimsHasRole(claims *Claims, role string) bool {
+	if claims == nil {
+		return false
+	}
+	for _, item := range claims.Roles {
+		if item == role {
+			return true
+		}
+	}
+	return claims.Role == role
 }
 
 func (m *Manager) VerifyAccessToken(tokenStr string) (*Claims, error) {

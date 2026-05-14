@@ -127,7 +127,7 @@ func main() {
 
 	moduleRepo := modulerepo.New(db)
 	moduleUseCase := moduleusecase.New(moduleRepo)
-	moduleHandler := modulehandler.NewHandler(moduleUseCase)
+	moduleHandler := modulehandler.NewHandler(moduleUseCase, jwtMgr)
 
 	courseRepo := courserepo.NewRepo(db)
 	courseUseCase := courseusecase.New(courseRepo, reviewRepo, moduleRepo)
@@ -135,7 +135,7 @@ func main() {
 
 	lessonRepo := lessonrepo.NewRepo(db)
 	lessonUseCase := lessonusecase.New(lessonRepo)
-	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase)
+	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase, jwtMgr)
 
 	coursePointRepo := coursepointrepo.NewRepo(db)
 	coursePointUseCase := coursepointusecase.New(coursePointRepo)
