@@ -15,6 +15,7 @@ func (h *Handler) GetStreak(c *gin.Context) {
 	userID := middleware.GetUserID(h.jwtMgr, c)
 	if userID == nil {
 		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
 	}
 	result, err := h.client.GetStreak(c.Request.Context(), *userID)
 	if err != nil {

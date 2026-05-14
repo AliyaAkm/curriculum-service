@@ -51,7 +51,10 @@ func GetUserID(jwtMgr *Manager, c *gin.Context) *uuid.UUID {
 		return nil
 	}
 
-	claims, _ := jwtMgr.VerifyAccessToken(tokenStr)
+	claims, err := jwtMgr.VerifyAccessToken(tokenStr)
+	if err != nil {
+		return nil
+	}
 
 	userID, err := uuid.Parse(claims.Subject)
 	if err != nil {

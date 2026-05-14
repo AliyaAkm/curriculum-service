@@ -10,4 +10,5 @@ type Repository interface {
 	GetStreak(ctx context.Context, userID uuid.UUID) (*streak.DailyStreak, error)
 	CreateStreak(ctx context.Context, value *streak.DailyStreak) error
 	UpdateStreak(ctx context.Context, value *streak.DailyStreak) error
+	UpdateUserMaxStreak(ctx context.Context, userID uuid.UUID, value int64) error
 }

@@ -3,8 +3,9 @@ package streak
 import (
 	"context"
 	"curriculum-service/internal/domain/streak"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func (u *UseCase) GetStreak(ctx context.Context, userID uuid.UUID) (*streak.DailyStreak, error) {
@@ -22,25 +23,33 @@ func (u *UseCase) GetStreak(ctx context.Context, userID uuid.UUID) (*streak.Dail
 			Streak:    1,
 			LastLogin: now,
 		}
-		err = u.repo.CreateStreak(ctx, entity)
-		if err != nil {
+		if err := u.repo.CreateStreak(ctx, entity); err != nil {
+			return nil, err
+		}
+		if err := u.repo.UpdateUserMaxStreak(ctx, userID, entity.Streak); err != nil {
 			return nil, err
 		}
 		return entity, nil
 	}
+
 	days := int(now.Sub(entity.LastLogin).Hours() / 24)
 	if days == 0 {
-		return entity, nil // сегодня зашел
+		if err := u.repo.UpdateUserMaxStreak(ctx, userID, entity.Streak); err != nil {
+			return nil, err
+		}
+		return entity, nil
 	}
 	if days == 1 {
-		entity.Streak++ // зашел вчера
+		entity.Streak++
 	} else {
-		entity.Streak = 1 // пропустил
+		entity.Streak = 1
 	}
 	entity.LastLogin = now
 
-	err = u.repo.UpdateStreak(ctx, entity)
-	if err != nil {
+	if err := u.repo.UpdateStreak(ctx, entity); err != nil {
+		return nil, err
+	}
+	if err := u.repo.UpdateUserMaxStreak(ctx, userID, entity.Streak); err != nil {
 		return nil, err
 	}
 	return entity, nil

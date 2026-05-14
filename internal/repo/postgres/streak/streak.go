@@ -31,3 +31,9 @@ func (r *Repo) CreateStreak(ctx context.Context, value *streak.DailyStreak) erro
 func (r *Repo) UpdateStreak(ctx context.Context, value *streak.DailyStreak) error {
 	return r.db.WithContext(ctx).Save(value).Error
 }
+
+func (r *Repo) UpdateUserMaxStreak(ctx context.Context, userID uuid.UUID, value int64) error {
+	return r.db.WithContext(ctx).
+		Exec("UPDATE users SET max_streak = ? WHERE id = ? AND max_streak < ?", value, userID, value).
+		Error
+}
