@@ -8,6 +8,8 @@ import (
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
+	"curriculum-service/internal/http/handlers/practice"
+	"curriculum-service/internal/http/handlers/quiz"
 	"curriculum-service/internal/http/handlers/review"
 	"curriculum-service/internal/http/handlers/status"
 	"curriculum-service/internal/http/handlers/streak"
@@ -27,6 +29,8 @@ type Handler struct {
 	Locale           *locale.Handler
 	Module           *module.Handler
 	Lesson           *lesson.Handler
+	Practice         *practice.Handler
+	Quiz             *quiz.Handler
 	Review           *review.Handler
 	CoursePoint      *coursepoint.Handler
 	Streak           *streak.Handler
@@ -68,6 +72,21 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/lesson/:id", handler.Lesson.GetLessonByID)
 	r.PUT("/lesson/:id", handler.Lesson.UpdateLesson)
 	r.POST("/lesson", handler.Lesson.CreateLesson)
+
+	// practice
+	r.POST("/practice", handler.Practice.CreatePractice)
+	r.GET("/practice", handler.Practice.GetPracticeByLessonID)
+	r.GET("/practice/:id", handler.Practice.GetPracticeByID)
+	r.PUT("/practice/:id", handler.Practice.UpdatePractice)
+	r.DELETE("/practice/:id", handler.Practice.DeletePractice)
+
+	// quiz
+	r.POST("/quiz", handler.Quiz.CreateQuiz)
+	r.GET("/lesson/:id/quiz", handler.Quiz.GetQuizzesByLessonID)
+	r.POST("/quiz/:id/answer", handler.Quiz.SubmitAnswer)
+	r.GET("/quiz/:id", handler.Quiz.GetQuizByID)
+	r.PUT("/quiz/:id", handler.Quiz.UpdateQuiz)
+	r.DELETE("/quiz/:id", handler.Quiz.DeleteQuiz)
 	//r.GET("/course/search", catalogH.SearchCourses)
 	//r.GET("/course/filter", catalogH.FilterCourses)
 	//r.GET("/course/filters", catalogH.ListFilterOptions)

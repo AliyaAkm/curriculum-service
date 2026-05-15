@@ -9,6 +9,8 @@ import (
 	levelhandler "curriculum-service/internal/http/handlers/level"
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
+	practicehandler "curriculum-service/internal/http/handlers/practice"
+	quizhandler "curriculum-service/internal/http/handlers/quiz"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
 	statushandler "curriculum-service/internal/http/handlers/status"
 	streakhandler "curriculum-service/internal/http/handlers/streak"
@@ -21,6 +23,8 @@ import (
 	levelrepo "curriculum-service/internal/repo/postgres/level"
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
+	practicerepo "curriculum-service/internal/repo/postgres/practice"
+	quizrepo "curriculum-service/internal/repo/postgres/quiz"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	streakrepo "curriculum-service/internal/repo/postgres/streak"
@@ -33,6 +37,8 @@ import (
 	levelusecase "curriculum-service/internal/usecase/level"
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
+	practiceusecase "curriculum-service/internal/usecase/practice"
+	quizusecase "curriculum-service/internal/usecase/quiz"
 	reviewusecase "curriculum-service/internal/usecase/review"
 	statususecase "curriculum-service/internal/usecase/status"
 	streakusecase "curriculum-service/internal/usecase/streak"
@@ -137,6 +143,14 @@ func main() {
 	lessonUseCase := lessonusecase.New(lessonRepo)
 	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase, jwtMgr)
 
+	practiceRepo := practicerepo.NewRepo(db)
+	practiceUseCase := practiceusecase.New(practiceRepo)
+	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
+
+	quizRepo := quizrepo.NewRepo(db)
+	quizUseCase := quizusecase.New(quizRepo)
+	quizHandler := quizhandler.NewHandler(quizUseCase, jwtMgr)
+
 	coursePointRepo := coursepointrepo.NewRepo(db)
 	coursePointUseCase := coursepointusecase.New(coursePointRepo)
 	coursePointHandler := coursepointhandler.New(coursePointUseCase)
@@ -151,6 +165,8 @@ func main() {
 		Locale:           localeHandler,
 		Module:           moduleHandler,
 		Lesson:           lessonHandler,
+		Practice:         practiceHandler,
+		Quiz:             quizHandler,
 		Review:           reviewHandler,
 		CoursePoint:      coursePointHandler,
 		Streak:           streakHandler,
