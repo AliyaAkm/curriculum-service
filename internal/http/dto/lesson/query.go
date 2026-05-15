@@ -16,6 +16,7 @@ type LessonRequest struct {
 	XPReward        int       `json:"xp_reward"`
 	CodeSnippet     string    `json:"code_snippet"`
 	ExampleOutput   string    `json:"example_output"`
+	VideoObjectKey  string    `json:"video_object_key"`
 	Title           Locale    `json:"title"`
 	Summary         Locale    `json:"summary"`
 	OutCome         Locale    `json:"outcome"`
@@ -34,6 +35,7 @@ type CreateLessonRequest struct {
 	XPReward        int                                      `json:"xp_reward"`
 	CodeSnippet     string                                   `json:"code_snippet"`
 	ExampleOutput   string                                   `json:"example_output"`
+	VideoObjectKey  string                                   `json:"video_object_key"`
 }
 
 type UpdateLessonRequest struct {
@@ -47,4 +49,5 @@ type UpdateLessonRequest struct {
 	XPReward        int                                      `json:"xp_reward"`
 	CodeSnippet     string                                   `json:"code_snippet"`
 	ExampleOutput   string                                   `json:"example_output"`
+	VideoObjectKey  string                                   `json:"video_object_key"`
 }

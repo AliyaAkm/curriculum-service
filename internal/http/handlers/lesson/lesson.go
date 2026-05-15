@@ -13,11 +13,15 @@ import (
 	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/respond"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
+	"path/filepath"
 	"strings"
 )
+
+const maxLessonVideoUploadSize = 1024 * 1024 * 1024
 
 func (h *Handler) GetAllLessons(c *gin.Context) {
 	id := c.Param("id")
@@ -53,11 +57,21 @@ func (h *Handler) GetAllLessons(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, convertLessons(resp))
+	lessons, err := h.convertLessons(resp)
+	if err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, lessons)
 
 }
 
 func (h *Handler) CreateLesson(c *gin.Context) {
+	if !h.requireLessonManager(c) {
+		return
+	}
 
 	request := lesson2.LessonRequest{}
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -76,7 +90,14 @@ func (h *Handler) CreateLesson(c *gin.Context) {
 		return
 	}
 
-	respond.JSON(c, http.StatusOK, convertLesson(result))
+	response, err := h.convertLesson(result)
+	if err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, response)
 }
 
 func (h *Handler) GetLessonByID(c *gin.Context) {
@@ -108,10 +129,77 @@ func (h *Handler) GetLessonByID(c *gin.Context) {
 		return
 	}
 
-	respond.JSON(c, http.StatusOK, convertLesson(result))
+	response, err := h.convertLesson(result)
+	if err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, response)
+}
+
+func (h *Handler) UploadLessonVideo(c *gin.Context) {
+	if !h.requireLessonManager(c) {
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "invalid lesson id")
+		return
+	}
+	if h.videoStore == nil {
+		respond.Error(c, http.StatusInternalServerError, "storage", "video storage is not configured")
+		return
+	}
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxLessonVideoUploadSize)
+	file, header, err := c.Request.FormFile("video")
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "video file is required")
+		return
+	}
+	defer file.Close()
+
+	contentType := strings.TrimSpace(header.Header.Get("Content-Type"))
+	if contentType != "" && !strings.HasPrefix(strings.ToLower(contentType), "video/") && contentType != "application/octet-stream" {
+		respond.JSON(c, http.StatusBadRequest, "video file must have video content type")
+		return
+	}
+
+	objectKey := strings.Trim(strings.TrimSpace(c.PostForm("video_object_key")), "/")
+	if objectKey == "" {
+		objectKey = buildLessonVideoObjectKey(id, header.Filename)
+	}
+
+	if err = h.videoStore.PutObject(c.Request.Context(), objectKey, file, header.Size, contentType); err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "storage", "upload lesson video")
+		return
+	}
+
+	result, err := h.client.UpdateLessonVideoObjectKey(c.Request.Context(), id, &objectKey)
+	if err != nil {
+		writeCatalogError(c, err)
+		return
+	}
+
+	response, err := h.convertLesson(result)
+	if err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, response)
 }
 
 func (h *Handler) UpdateLesson(c *gin.Context) {
+	if !h.requireLessonManager(c) {
+		return
+	}
+
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		respond.JSON(c, http.StatusBadRequest, "invalid lesson id")
@@ -136,7 +224,14 @@ func (h *Handler) UpdateLesson(c *gin.Context) {
 		return
 	}
 
-	respond.JSON(c, http.StatusOK, convertLesson(result))
+	response, err := h.convertLesson(result)
+	if err != nil {
+		_ = c.Error(err)
+		respond.Error(c, http.StatusInternalServerError, "internal", domain.ErrInternal.Error())
+		return
+	}
+
+	respond.JSON(c, http.StatusOK, response)
 }
 
 func writeCatalogError(c *gin.Context, err error) {
@@ -151,19 +246,23 @@ func writeCatalogError(c *gin.Context, err error) {
 	}
 }
 
-func convertLessons(resp []lesson.LessonModel) []lesson2.Lesson {
+func (h *Handler) convertLessons(resp []lesson.LessonModel) ([]lesson2.Lesson, error) {
 	lessons := make([]lesson2.Lesson, len(resp))
 
 	for i := range resp {
-		lessons[i] = convertLesson(&resp[i])
+		item, err := h.convertLesson(&resp[i])
+		if err != nil {
+			return nil, err
+		}
+		lessons[i] = item
 	}
 
-	return lessons
+	return lessons, nil
 }
 
-func convertLesson(resp *lesson.LessonModel) lesson2.Lesson {
+func (h *Handler) convertLesson(resp *lesson.LessonModel) (lesson2.Lesson, error) {
 	if resp == nil {
-		return lesson2.Lesson{}
+		return lesson2.Lesson{}, nil
 	}
 
 	item := lesson2.Lesson{
@@ -174,8 +273,17 @@ func convertLesson(resp *lesson.LessonModel) lesson2.Lesson {
 		XPReward:        resp.XPReward,
 		CodeSnippet:     resp.CodeSnippet,
 		ExampleOutput:   resp.ExampleOutput,
+		VideoObjectKey:  resp.VideoObjectKey,
 		CreatedAt:       resp.CreatedAt,
 		UpdatedAt:       resp.UpdatedAt,
+	}
+
+	if h.videoStore != nil && resp.VideoObjectKey != nil && strings.TrimSpace(*resp.VideoObjectKey) != "" {
+		videoURL, err := h.videoStore.PresignGetObject(*resp.VideoObjectKey)
+		if err != nil {
+			return lesson2.Lesson{}, fmt.Errorf("presign lesson video: %w", err)
+		}
+		item.VideoURL = &videoURL
 	}
 
 	for _, v := range resp.Titles {
@@ -196,7 +304,7 @@ func convertLesson(resp *lesson.LessonModel) lesson2.Lesson {
 
 	item.KeyPoints = buildKeyPoints(resp.KeyPoints)
 
-	return item
+	return item, nil
 }
 
 func buildKeyPoints(rows []keypoint.LessonKeyPointModel) []lesson2.Locale {
@@ -257,6 +365,30 @@ func stringPtr(v string) *string {
 	return &v
 }
 
+func (h *Handler) requireLessonManager(c *gin.Context) bool {
+	claims := middleware.GetClaims(h.jwtMgr, c)
+	if claims == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return false
+	}
+
+	if middleware.ClaimsHasRole(claims, middleware.RoleTeacher) || middleware.ClaimsHasRole(claims, middleware.RoleAdmin) {
+		return true
+	}
+
+	respond.Error(c, http.StatusForbidden, "forbidden", domain.ErrForbidden.Error())
+	return false
+}
+
+func buildLessonVideoObjectKey(lessonID uuid.UUID, filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	if ext == "" {
+		ext = ".mp4"
+	}
+
+	return "lessons/" + lessonID.String() + "/" + uuid.New().String() + ext
+}
+
 func convertLessonRequest(req lesson2.LessonRequest, lessonID uuid.UUID, locales []locale.Locale) *lesson.LessonModel {
 	localesMap := make(map[string]uuid.UUID, 0)
 	for i := range locales {
@@ -269,6 +401,7 @@ func convertLessonRequest(req lesson2.LessonRequest, lessonID uuid.UUID, locales
 		XPReward:        req.XPReward,
 		CodeSnippet:     stringPtr(req.CodeSnippet),
 		ExampleOutput:   stringPtr(req.ExampleOutput),
+		VideoObjectKey:  stringPtr(req.VideoObjectKey),
 
 		Titles:         buildLessonTitles(req.Title, localesMap, lessonID),
 		Summaries:      buildLessonSummaries(req.Summary, localesMap, lessonID),

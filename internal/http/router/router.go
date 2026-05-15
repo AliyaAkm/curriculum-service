@@ -1,6 +1,7 @@
 package router
 
 import (
+	"curriculum-service/internal/http/handlers/achievement"
 	"curriculum-service/internal/http/handlers/course"
 	"curriculum-service/internal/http/handlers/coursepoint"
 	"curriculum-service/internal/http/handlers/durationcategory"
@@ -9,6 +10,7 @@ import (
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
 	"curriculum-service/internal/http/handlers/practice"
+	"curriculum-service/internal/http/handlers/progress"
 	"curriculum-service/internal/http/handlers/quiz"
 	"curriculum-service/internal/http/handlers/review"
 	"curriculum-service/internal/http/handlers/status"
@@ -20,6 +22,7 @@ import (
 )
 
 type Handler struct {
+	Achievement      *achievement.Handler
 	Status           *status.Handler
 	Level            *level.Handler
 	DurationCategory *durationcategory.Handler
@@ -30,6 +33,7 @@ type Handler struct {
 	Module           *module.Handler
 	Lesson           *lesson.Handler
 	Practice         *practice.Handler
+	Progress         *progress.Handler
 	Quiz             *quiz.Handler
 	Review           *review.Handler
 	CoursePoint      *coursepoint.Handler
@@ -51,9 +55,19 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/dictionary/tag", handler.Tag.ListCourseTags)
 	r.GET("/dictionary/locale", handler.Locale.ListCourseLocales)
 
+	// achievements
+	r.GET("/achievements", handler.Achievement.ListAchievements)
+	r.GET("/achievements/:user_id", handler.Achievement.ListAchievements)
+
+	// progress
+	r.GET("/progress", handler.Progress.ListCourseProgress)
+	r.GET("/progress/:user_id", handler.Progress.ListCourseProgress)
+
 	// курсы
 	r.POST("/course", handler.Course.CreateCourse)
 	r.GET("/course/:id", handler.Course.GetCourseByID)
+	r.GET("/course/:id/progress", handler.Progress.GetCourseProgress)
+	r.GET("/course/:id/progress/:user_id", handler.Progress.GetCourseProgress)
 	r.DELETE("/course/:id", handler.Course.DeleteCourse)
 	r.PUT("/course/:id", handler.Course.UpdateCourse)
 
@@ -70,7 +84,9 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	// lesson
 	r.GET("/module/lesson/:id", handler.Lesson.GetAllLessons)
 	r.GET("/lesson/:id", handler.Lesson.GetLessonByID)
+	r.POST("/lesson/:id/complete", handler.Progress.CompleteLesson)
 	r.PUT("/lesson/:id", handler.Lesson.UpdateLesson)
+	r.POST("/lesson/:id/video", handler.Lesson.UploadLessonVideo)
 	r.POST("/lesson", handler.Lesson.CreateLesson)
 
 	// practice

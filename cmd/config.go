@@ -36,11 +36,23 @@ type JWTConfig struct {
 	RefreshTTL time.Duration `env:"REFRESH_TTL"`
 }
 
+type MinIOConfig struct {
+	Endpoint       string        `env:"ENDPOINT" envDefault:"localhost:9000"`
+	PublicEndpoint string        `env:"PUBLIC_ENDPOINT" envDefault:"localhost:9000"`
+	AccessKey      string        `env:"ACCESS_KEY" envDefault:"minioadmin"`
+	SecretKey      string        `env:"SECRET_KEY" envDefault:"minioadmin123"`
+	Bucket         string        `env:"BUCKET" envDefault:"lesson-videos"`
+	Region         string        `env:"REGION" envDefault:"us-east-1"`
+	UseSSL         bool          `env:"USE_SSL" envDefault:"false"`
+	PresignTTL     time.Duration `env:"PRESIGN_TTL" envDefault:"30m"`
+}
+
 type Config struct {
-	HTTPAddr string     `env:"HTTP_ADDR" envDefault:":8080"`
-	HTTP     HTTPConfig `envPrefix:"HTTP_"`
-	DB       DBConfig   `envPrefix:"DB_"`
-	JWT      JWTConfig  `envPrefix:"JWT_"`
+	HTTPAddr string      `env:"HTTP_ADDR" envDefault:":8080"`
+	HTTP     HTTPConfig  `envPrefix:"HTTP_"`
+	DB       DBConfig    `envPrefix:"DB_"`
+	JWT      JWTConfig   `envPrefix:"JWT_"`
+	MinIO    MinIOConfig `envPrefix:"MINIO_"`
 }
 
 func ReadEnv() (*Config, error) {

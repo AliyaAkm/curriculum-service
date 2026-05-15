@@ -15,4 +15,5 @@ type Repository interface {
 	IsModuleInFreePreview(ctx context.Context, courseID uuid.UUID, moduleID uuid.UUID, limit int) (bool, error)
 	CreateLesson(ctx context.Context, value *lessondomain.LessonModel) error
 	UpdateLesson(ctx context.Context, id uuid.UUID, value *lessondomain.LessonModel) error
+	UpdateLessonVideoObjectKey(ctx context.Context, id uuid.UUID, videoObjectKey *string) error
 }

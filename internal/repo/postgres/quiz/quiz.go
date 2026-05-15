@@ -138,7 +138,8 @@ func (r *Repo) SaveQuizAttempt(ctx context.Context, userID uuid.UUID, quizID uui
 		result := tx.Exec(`
 			UPDATE lesson_quiz_attempts
 			SET selected_answer_index = ?,
-			    is_correct = ?
+			    is_correct = ?,
+			    updated_at = NOW()
 			WHERE user_id = ?
 			  AND quiz_id = ?
 		`, selectedAnswerIndex, isCorrect, userID, quizID)
@@ -146,15 +147,34 @@ func (r *Repo) SaveQuizAttempt(ctx context.Context, userID uuid.UUID, quizID uui
 			return result.Error
 		}
 		if result.RowsAffected > 0 {
-			return nil
+			return updateCourseActivityByQuizTx(ctx, tx, userID, quizID)
 		}
 
-		return tx.Exec(`
+		if err := tx.Exec(`
 			INSERT INTO lesson_quiz_attempts (
 				id, quiz_id, user_id, selected_answer_index, is_correct
 			) VALUES (?, ?, ?, ?, ?)
-		`, uuid.New(), quizID, userID, selectedAnswerIndex, isCorrect).Error
+		`, uuid.New(), quizID, userID, selectedAnswerIndex, isCorrect).Error; err != nil {
+			return err
+		}
+
+		return updateCourseActivityByQuizTx(ctx, tx, userID, quizID)
 	})
+}
+
+func updateCourseActivityByQuizTx(ctx context.Context, tx *gorm.DB, userID uuid.UUID, quizID uuid.UUID) error {
+	return tx.WithContext(ctx).Exec(`
+		UPDATE course_subscription cs
+		SET started_at = COALESCE(cs.started_at, NOW()),
+		    last_activity_at = NOW(),
+		    current_lesson_id = lq.lesson_id
+		FROM lesson_quizzes lq
+		INNER JOIN course_lessons cl ON cl.id = lq.lesson_id
+		INNER JOIN course_modules cm ON cm.id = cl.module_id
+		WHERE lq.id = ?
+		  AND cs.user_id = ?
+		  AND cs.course_id = cm.course_id
+	`, quizID, userID).Error
 }
 
 func (r *Repo) GetLessonAccessInfo(ctx context.Context, lessonID uuid.UUID) (uuid.UUID, uuid.UUID, int, error) {

@@ -142,6 +142,7 @@ func (r *Repo) CreateLesson(ctx context.Context, value *lessondomain.LessonModel
 			XPReward:        value.XPReward,
 			CodeSnippet:     value.CodeSnippet,
 			ExampleOutput:   value.ExampleOutput,
+			VideoObjectKey:  value.VideoObjectKey,
 		}
 
 		if err := tx.Create(&lesson).Error; err != nil {
@@ -205,6 +206,7 @@ func (r *Repo) UpdateLesson(ctx context.Context, id uuid.UUID, value *lessondoma
 				"xp_reward":        value.XPReward,
 				"code_snippet":     value.CodeSnippet,
 				"example_output":   value.ExampleOutput,
+				"video_object_key": value.VideoObjectKey,
 			}).Error
 		if err != nil {
 			return err
@@ -234,6 +236,15 @@ func (r *Repo) UpdateLesson(ctx context.Context, id uuid.UUID, value *lessondoma
 		return nil
 	})
 }
+
+func (r *Repo) UpdateLessonVideoObjectKey(ctx context.Context, id uuid.UUID, videoObjectKey *string) error {
+	return r.db.WithContext(ctx).
+		Model(&lessondomain.LessonModel{}).
+		Where("id = ?", id).
+		Update("video_object_key", videoObjectKey).
+		Error
+}
+
 func (r *Repo) createLessonsAttributeTx(ctx context.Context, tx *gorm.DB, value *lessondomain.LessonModel) error {
 	if len(value.Titles) > 0 {
 		if err := tx.WithContext(ctx).Create(&value.Titles).Error; err != nil {

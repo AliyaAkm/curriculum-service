@@ -18,6 +18,7 @@ type LessonModel struct {
 	XPReward        int       `gorm:"column:xp_reward"`
 	CodeSnippet     *string   `gorm:"column:code_snippet"`
 	ExampleOutput   *string   `gorm:"column:example_output"`
+	VideoObjectKey  *string   `gorm:"column:video_object_key"`
 	CreatedAt       time.Time `gorm:"column:created_at"`
 	UpdatedAt       time.Time `gorm:"column:updated_at"`
 

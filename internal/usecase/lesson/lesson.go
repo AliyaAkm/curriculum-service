@@ -89,3 +89,11 @@ func (u *UseCase) UpdateLesson(ctx context.Context, id uuid.UUID, value *lessond
 
 	return u.repo.GetLessonByID(ctx, id)
 }
+
+func (u *UseCase) UpdateLessonVideoObjectKey(ctx context.Context, id uuid.UUID, videoObjectKey *string) (*lessondomain.LessonModel, error) {
+	if err := u.repo.UpdateLessonVideoObjectKey(ctx, id, videoObjectKey); err != nil {
+		return nil, err
+	}
+
+	return u.repo.GetLessonByID(ctx, id)
+}

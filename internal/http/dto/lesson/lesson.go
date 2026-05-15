@@ -20,6 +20,8 @@ type Lesson struct { // course_lessons
 	XPReward        int       `json:"xp_reward"`
 	CodeSnippet     *string   `json:"code_snippet"`
 	ExampleOutput   *string   `json:"example_output"`
+	VideoObjectKey  *string   `json:"video_object_key,omitempty"`
+	VideoURL        *string   `json:"video_url,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
