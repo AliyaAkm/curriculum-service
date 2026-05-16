@@ -47,12 +47,21 @@ type MinIOConfig struct {
 	PresignTTL     time.Duration `env:"PRESIGN_TTL" envDefault:"30m"`
 }
 
+type RedisConfig struct {
+	Addr          string        `env:"ADDR" envDefault:""`
+	Password      string        `env:"PASSWORD" envDefault:""`
+	DB            int           `env:"DB" envDefault:"0"`
+	KeyPrefix     string        `env:"KEY_PREFIX" envDefault:"zerde:curriculum"`
+	DictionaryTTL time.Duration `env:"DICTIONARY_TTL" envDefault:"24h"`
+}
+
 type Config struct {
 	HTTPAddr string      `env:"HTTP_ADDR" envDefault:":8080"`
 	HTTP     HTTPConfig  `envPrefix:"HTTP_"`
 	DB       DBConfig    `envPrefix:"DB_"`
 	JWT      JWTConfig   `envPrefix:"JWT_"`
 	MinIO    MinIOConfig `envPrefix:"MINIO_"`
+	Redis    RedisConfig `envPrefix:"REDIS_"`
 }
 
 func ReadEnv() (*Config, error) {

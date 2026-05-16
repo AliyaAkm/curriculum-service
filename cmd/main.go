@@ -18,6 +18,7 @@ import (
 	streakhandler "curriculum-service/internal/http/handlers/streak"
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
+	dictionarycache "curriculum-service/internal/repo/cache/dictionary"
 	achievementrepo "curriculum-service/internal/repo/postgres/achievement"
 	courserepo "curriculum-service/internal/repo/postgres/course"
 	coursepointrepo "curriculum-service/internal/repo/postgres/coursepoint"
@@ -34,6 +35,7 @@ import (
 	streakrepo "curriculum-service/internal/repo/postgres/streak"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
+	cacheclient "curriculum-service/internal/service/cache"
 	"curriculum-service/internal/service/storage"
 	achievementusecase "curriculum-service/internal/usecase/achievement"
 	courseusecase "curriculum-service/internal/usecase/course"
@@ -98,6 +100,17 @@ func main() {
 	)
 
 	validate := validator.New()
+	dictionaryCache := cacheclient.NewJSONCache(cacheclient.RedisConfig{
+		Addr:      cfg.Redis.Addr,
+		Password:  cfg.Redis.Password,
+		DB:        cfg.Redis.DB,
+		KeyPrefix: cfg.Redis.KeyPrefix,
+	})
+	defer func() {
+		if err := dictionaryCache.Close(); err != nil {
+			log.Println("redis close error:", err)
+		}
+	}()
 
 	// daily streak
 	streakRepo := streakrepo.NewRepo(db)
@@ -106,27 +119,32 @@ func main() {
 
 	// status course
 	statusRepo := statusrepo.NewRepo(db)
-	statusUseCase := statususecase.New(statusRepo)
+	cachedStatusRepo := dictionarycache.NewStatus(statusRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	statusUseCase := statususecase.New(cachedStatusRepo)
 	statusHandler := statushandler.NewHandler(statusUseCase)
 
 	// level course
 	levelRepo := levelrepo.NewRepo(db)
-	levelUseCase := levelusecase.New(levelRepo)
+	cachedLevelRepo := dictionarycache.NewLevel(levelRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	levelUseCase := levelusecase.New(cachedLevelRepo)
 	levelHandler := levelhandler.NewHandler(levelUseCase)
 
 	// duration category
 	durationCategoryRepo := durationcategoryrepo.NewRepo(db)
-	durationCategoryUseCase := durationcategoryusecase.New(durationCategoryRepo)
+	cachedDurationCategoryRepo := dictionarycache.NewDurationCategory(durationCategoryRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	durationCategoryUseCase := durationcategoryusecase.New(cachedDurationCategoryRepo)
 	durationCategoryHandler := durationcategoryhandler.NewHandler(durationCategoryUseCase)
 
 	// topic course
 	topicRepo := topicrepo.NewRepo(db)
-	topicUseCase := topicusecase.New(topicRepo)
+	cachedTopicRepo := dictionarycache.NewTopic(topicRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	topicUseCase := topicusecase.New(cachedTopicRepo)
 	topicHandler := topichandler.NewHandler(topicUseCase)
 
 	// tag course
 	tagRepo := tagrepo.NewRepo(db)
-	tagUseCase := tagusecase.New(tagRepo)
+	cachedTagRepo := dictionarycache.NewTag(tagRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	tagUseCase := tagusecase.New(cachedTagRepo)
 	tagHandler := taghandler.NewHandler(tagUseCase)
 
 	// отзывы
@@ -135,7 +153,8 @@ func main() {
 	reviewHandler := reviewhandler.NewHandler(reviewUseCase, validate)
 
 	LocaleRepo := localerepo.NewRepo(db)
-	localeUseCase := localeusecase.New(LocaleRepo)
+	cachedLocaleRepo := dictionarycache.NewLocale(LocaleRepo, dictionaryCache, cfg.Redis.DictionaryTTL)
+	localeUseCase := localeusecase.New(cachedLocaleRepo)
 	localeHandler := localehandler.NewHandler(localeUseCase)
 
 	moduleRepo := modulerepo.New(db)
