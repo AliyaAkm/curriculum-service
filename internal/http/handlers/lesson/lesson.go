@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -149,7 +150,7 @@ func (h *Handler) UploadLessonVideo(c *gin.Context) {
 		respond.JSON(c, http.StatusBadRequest, "invalid lesson id")
 		return
 	}
-	if h.videoStore == nil {
+	if h.storage == nil {
 		respond.Error(c, http.StatusInternalServerError, "storage", "video storage is not configured")
 		return
 	}
@@ -173,11 +174,12 @@ func (h *Handler) UploadLessonVideo(c *gin.Context) {
 		objectKey = buildLessonVideoObjectKey(id, header.Filename)
 	}
 
-	if err = h.videoStore.PutObject(c.Request.Context(), objectKey, file, header.Size, contentType); err != nil {
+	if err = h.storage.PutObject(c.Request.Context(), objectKey, file, header.Size, contentType); err != nil {
 		_ = c.Error(err)
 		respond.Error(c, http.StatusInternalServerError, "storage", "upload lesson video")
 		return
 	}
+	log.Printf("lesson video uploaded through storage-service: lesson_id=%s object_key=%s size=%d content_type=%s", id, objectKey, header.Size, contentType)
 
 	result, err := h.client.UpdateLessonVideoObjectKey(c.Request.Context(), id, &objectKey)
 	if err != nil {
@@ -278,8 +280,8 @@ func (h *Handler) convertLesson(resp *lesson.LessonModel) (lesson2.Lesson, error
 		UpdatedAt:       resp.UpdatedAt,
 	}
 
-	if h.videoStore != nil && resp.VideoObjectKey != nil && strings.TrimSpace(*resp.VideoObjectKey) != "" {
-		videoURL, err := h.videoStore.PresignGetObject(*resp.VideoObjectKey)
+	if h.storage != nil && resp.VideoObjectKey != nil && strings.TrimSpace(*resp.VideoObjectKey) != "" {
+		videoURL, err := h.storage.PresignGetObject(*resp.VideoObjectKey)
 		if err != nil {
 			return lesson2.Lesson{}, fmt.Errorf("presign lesson video: %w", err)
 		}

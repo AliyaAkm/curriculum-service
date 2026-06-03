@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"curriculum-service/internal/domain"
+	"slices"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"strings"
-	"time"
 )
 
 const (
@@ -30,6 +32,7 @@ var rolePriority = map[string]int{
 type Claims struct {
 	Role     string   `json:"role"`
 	Roles    []string `json:"roles,omitempty"`
+	Login    string   `json:"login,omitempty"`
 	IsActive bool     `json:"is_active"`
 	jwtlib.RegisteredClaims
 }
@@ -77,12 +80,7 @@ func ClaimsHasRole(claims *Claims, role string) bool {
 	if claims == nil {
 		return false
 	}
-	for _, item := range claims.Roles {
-		if item == role {
-			return true
-		}
-	}
-	return claims.Role == role
+	return slices.Contains(claims.Roles, role) || claims.Role == role
 }
 
 func (m *Manager) VerifyAccessToken(tokenStr string) (*Claims, error) {
@@ -137,12 +135,7 @@ func bearerToken(header string) string {
 	return strings.TrimSpace(strings.TrimPrefix(header, prefix))
 }
 func audienceHas(auds jwtlib.ClaimStrings, want string) bool {
-	for _, a := range auds {
-		if a == want {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(auds, want)
 }
 
 func normalizeRoleClaims(primaryRole string, roles []string) []string {
@@ -152,10 +145,8 @@ func normalizeRoleClaims(primaryRole string, roles []string) []string {
 		if role == "" || !IsValidRoleCode(role) {
 			return
 		}
-		for _, existing := range normalized {
-			if existing == role {
-				return
-			}
+		if slices.Contains(normalized, role) {
+			return
 		}
 		normalized = append(normalized, role)
 	}

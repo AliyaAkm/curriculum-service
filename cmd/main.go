@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	achievementhandler "curriculum-service/internal/http/handlers/achievement"
+	certificatehandler "curriculum-service/internal/http/handlers/certificate"
 	coursehandler "curriculum-service/internal/http/handlers/course"
 	coursepointhandler "curriculum-service/internal/http/handlers/coursepoint"
 	durationcategoryhandler "curriculum-service/internal/http/handlers/durationcategory"
@@ -20,6 +21,7 @@ import (
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	dictionarycache "curriculum-service/internal/repo/cache/dictionary"
 	achievementrepo "curriculum-service/internal/repo/postgres/achievement"
+	certificaterepo "curriculum-service/internal/repo/postgres/certificate"
 	courserepo "curriculum-service/internal/repo/postgres/course"
 	coursepointrepo "curriculum-service/internal/repo/postgres/coursepoint"
 	durationcategoryrepo "curriculum-service/internal/repo/postgres/durationcategory"
@@ -38,6 +40,7 @@ import (
 	cacheclient "curriculum-service/internal/service/cache"
 	"curriculum-service/internal/service/storage"
 	achievementusecase "curriculum-service/internal/usecase/achievement"
+	certificateusecase "curriculum-service/internal/usecase/certificate"
 	courseusecase "curriculum-service/internal/usecase/course"
 	coursepointusecase "curriculum-service/internal/usecase/coursepoint"
 	durationcategoryusecase "curriculum-service/internal/usecase/durationcategory"
@@ -161,18 +164,12 @@ func main() {
 	moduleUseCase := moduleusecase.New(moduleRepo)
 	moduleHandler := modulehandler.NewHandler(moduleUseCase, jwtMgr)
 
-	videoStore, err := storage.NewMinIO(storage.MinIOConfig{
-		Endpoint:       cfg.MinIO.Endpoint,
-		PublicEndpoint: cfg.MinIO.PublicEndpoint,
-		AccessKey:      cfg.MinIO.AccessKey,
-		SecretKey:      cfg.MinIO.SecretKey,
-		Bucket:         cfg.MinIO.Bucket,
-		Region:         cfg.MinIO.Region,
-		UseSSL:         cfg.MinIO.UseSSL,
-		PresignTTL:     cfg.MinIO.PresignTTL,
+	storageClient, err := storage.NewClient(storage.ClientConfig{
+		BaseURL: cfg.Storage.URL,
+		Timeout: cfg.Storage.Timeout,
 	})
 	if err != nil {
-		log.Fatal("error configuring minio storage:", err)
+		log.Fatal("error configuring storage service client:", err)
 	}
 
 	courseRepo := courserepo.NewRepo(db)
@@ -181,7 +178,7 @@ func main() {
 
 	lessonRepo := lessonrepo.NewRepo(db)
 	lessonUseCase := lessonusecase.New(lessonRepo)
-	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase, videoStore, jwtMgr)
+	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase, storageClient, jwtMgr)
 
 	practiceRepo := practicerepo.NewRepo(db)
 	practiceUseCase := practiceusecase.New(practiceRepo)
@@ -194,6 +191,10 @@ func main() {
 	achievementRepo := achievementrepo.NewRepo(db)
 	achievementUseCase := achievementusecase.New(achievementRepo)
 	achievementHandler := achievementhandler.NewHandler(achievementUseCase, jwtMgr)
+
+	certificateRepo := certificaterepo.NewRepo(db)
+	certificateUseCase := certificateusecase.NewUseCase(certificateRepo, storageClient)
+	certificateHandler := certificatehandler.NewHandler(certificateUseCase, jwtMgr)
 
 	quizRepo := quizrepo.NewRepo(db)
 	quizUseCase := quizusecase.New(quizRepo)
@@ -216,6 +217,7 @@ func main() {
 		Lesson:           lessonHandler,
 		Practice:         practiceHandler,
 		Progress:         progressHandler,
+		Certificate:      certificateHandler,
 		Quiz:             quizHandler,
 		Review:           reviewHandler,
 		CoursePoint:      coursePointHandler,

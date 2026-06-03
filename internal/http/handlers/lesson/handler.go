@@ -5,15 +5,15 @@ import "curriculum-service/internal/http/middleware"
 type Handler struct {
 	client      client
 	localClient localClient
-	videoStore  videoStorage
+	storage     objectStorage
 	jwtMgr      *middleware.Manager
 }
 
-func NewHandler(client client, localClient localClient, videoStore videoStorage, jwtMgr *middleware.Manager) *Handler {
+func NewHandler(client client, localClient localClient, storage objectStorage, jwtMgr *middleware.Manager) *Handler {
 	return &Handler{
 		client:      client,
 		localClient: localClient,
-		videoStore:  videoStore,
+		storage:     storage,
 		jwtMgr:      jwtMgr,
 	}
 }

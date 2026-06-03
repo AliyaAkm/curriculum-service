@@ -22,7 +22,7 @@ type localClient interface {
 	GetAllLocales(ctx context.Context) ([]locale.Locale, error)
 }
 
-type videoStorage interface {
+type objectStorage interface {
 	PutObject(ctx context.Context, objectKey string, body io.ReadSeeker, size int64, contentType string) error
 	PresignGetObject(objectKey string) (string, error)
 }

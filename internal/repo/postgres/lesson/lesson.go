@@ -199,7 +199,7 @@ func (r *Repo) UpdateLesson(ctx context.Context, id uuid.UUID, value *lessondoma
 		err := tx.
 			Model(&lessondomain.LessonModel{}).
 			Where("id = ?", id).
-			Updates(map[string]interface{}{
+			Updates(map[string]any{
 				"module_id":        value.ModuleID,
 				"position":         value.Position,
 				"duration_minutes": value.DurationMinutes,

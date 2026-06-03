@@ -2,6 +2,7 @@ package router
 
 import (
 	"curriculum-service/internal/http/handlers/achievement"
+	"curriculum-service/internal/http/handlers/certificate"
 	"curriculum-service/internal/http/handlers/course"
 	"curriculum-service/internal/http/handlers/coursepoint"
 	"curriculum-service/internal/http/handlers/durationcategory"
@@ -34,6 +35,7 @@ type Handler struct {
 	Lesson           *lesson.Handler
 	Practice         *practice.Handler
 	Progress         *progress.Handler
+	Certificate      *certificate.Handler
 	Quiz             *quiz.Handler
 	Review           *review.Handler
 	CoursePoint      *coursepoint.Handler
@@ -68,6 +70,7 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.GET("/course/:id", handler.Course.GetCourseByID)
 	r.GET("/course/:id/progress", handler.Progress.GetCourseProgress)
 	r.GET("/course/:id/progress/:user_id", handler.Progress.GetCourseProgress)
+	r.GET("/course/:id/certificate", handler.Certificate.IssueCourseCertificate)
 	r.DELETE("/course/:id", handler.Course.DeleteCourse)
 	r.PUT("/course/:id", handler.Course.UpdateCourse)
 
