@@ -51,7 +51,7 @@ func (r *Repo) CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uu
 			return domain.ErrForbidden
 		}
 
-		if err = tx.WithContext(ctx).Exec(`
+		insert := tx.WithContext(ctx).Exec(`
 			INSERT INTO user_course_points (
 				id, lesson_id, user_id, xp
 			)
@@ -59,12 +59,14 @@ func (r *Repo) CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uu
 			WHERE NOT EXISTS (
 				SELECT 1
 				FROM user_course_points
-				WHERE user_id = ?
-				  AND lesson_id = ?
+			WHERE user_id = ?
+			  AND lesson_id = ?
 			)
-		`, uuid.New(), lessonID, userID, info.XPReward, userID, lessonID).Error; err != nil {
-			return err
+		`, uuid.New(), lessonID, userID, info.XPReward, userID, lessonID)
+		if insert.Error != nil {
+			return insert.Error
 		}
+		newlyCompleted := insert.RowsAffected > 0
 
 		totalLessons, completedLessons, err := r.countCourseLessonsTx(ctx, tx, userID, info.CourseID)
 		if err != nil {
@@ -89,6 +91,9 @@ func (r *Repo) CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uu
 		}
 
 		result, err = r.getCourseProgressTx(ctx, tx, userID, info.CourseID)
+		if result != nil {
+			result.NewlyCompleted = newlyCompleted
+		}
 		return err
 	})
 	if err != nil {
@@ -100,6 +105,44 @@ func (r *Repo) CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uu
 
 func (r *Repo) GetCourseProgress(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (*progressdomain.CourseProgress, error) {
 	return r.getCourseProgressTx(ctx, r.db, userID, courseID)
+}
+
+func (r *Repo) GetLessonNotificationData(ctx context.Context, lessonID uuid.UUID) (*progressdomain.LessonNotificationData, error) {
+	var row progressdomain.LessonNotificationData
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT
+			cl.id AS lesson_id,
+			COALESCE(NULLIF(lt.name, ''), 'Lesson') AS lesson_title,
+			cm.course_id AS course_id,
+			COALESCE(NULLIF(c.title, ''), 'Course') AS course_title
+		FROM course_lessons cl
+		INNER JOIN course_modules cm ON cm.id = cl.module_id
+		INNER JOIN courses c ON c.id = cm.course_id
+		LEFT JOIN LATERAL (
+			SELECT title.name
+			FROM course_lesson_titles title
+			LEFT JOIN course_locales locale ON locale.id = title.locale_id
+			WHERE title.lesson_id = cl.id
+			ORDER BY
+				CASE locale.code
+					WHEN 'ru' THEN 0
+					WHEN 'en' THEN 1
+					WHEN 'kk' THEN 2
+					ELSE 3
+				END,
+				title.name
+			LIMIT 1
+		) lt ON TRUE
+		WHERE cl.id = ?
+	`, lessonID).Scan(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	if row.LessonID == uuid.Nil {
+		return nil, domain.ErrLessonNotFound
+	}
+
+	return &row, nil
 }
 
 func (r *Repo) ListCourseProgress(ctx context.Context, userID uuid.UUID) ([]progressdomain.CourseProgress, error) {

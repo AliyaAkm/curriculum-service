@@ -9,6 +9,7 @@ import (
 type CourseProgress struct {
 	CourseID           uuid.UUID
 	UserID             uuid.UUID
+	NewlyCompleted     bool
 	StartedAt          *time.Time
 	LastActivityAt     *time.Time
 	CompletedAt        *time.Time
@@ -27,4 +28,11 @@ type ModuleProgress struct {
 	IsOpen           bool
 	TotalLessons     int
 	CompletedLessons int
+}
+
+type LessonNotificationData struct {
+	LessonID    uuid.UUID
+	LessonTitle string
+	CourseID    uuid.UUID
+	CourseTitle string
 }

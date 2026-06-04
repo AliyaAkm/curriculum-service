@@ -41,6 +41,12 @@ type StorageServiceConfig struct {
 	Timeout time.Duration `env:"TIMEOUT" envDefault:"30m"`
 }
 
+type NotificationServiceConfig struct {
+	URL            string        `env:"URL" envDefault:"http://localhost:8087"`
+	Timeout        time.Duration `env:"TIMEOUT" envDefault:"5s"`
+	InternalAPIKey string        `env:"INTERNAL_API_KEY"`
+}
+
 type RedisConfig struct {
 	Addr          string        `env:"ADDR" envDefault:""`
 	Password      string        `env:"PASSWORD" envDefault:""`
@@ -50,12 +56,13 @@ type RedisConfig struct {
 }
 
 type Config struct {
-	HTTPAddr string               `env:"HTTP_ADDR" envDefault:":8080"`
-	HTTP     HTTPConfig           `envPrefix:"HTTP_"`
-	DB       DBConfig             `envPrefix:"DB_"`
-	JWT      JWTConfig            `envPrefix:"JWT_"`
-	Redis    RedisConfig          `envPrefix:"REDIS_"`
-	Storage  StorageServiceConfig `envPrefix:"STORAGE_SERVICE_"`
+	HTTPAddr     string                    `env:"HTTP_ADDR" envDefault:":8080"`
+	HTTP         HTTPConfig                `envPrefix:"HTTP_"`
+	DB           DBConfig                  `envPrefix:"DB_"`
+	JWT          JWTConfig                 `envPrefix:"JWT_"`
+	Redis        RedisConfig               `envPrefix:"REDIS_"`
+	Storage      StorageServiceConfig      `envPrefix:"STORAGE_SERVICE_"`
+	Notification NotificationServiceConfig `envPrefix:"NOTIFICATION_SERVICE_"`
 }
 
 func ReadEnv() (*Config, error) {

@@ -9,6 +9,11 @@ import (
 
 type Repository interface {
 	CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uuid.UUID) (*progressdomain.CourseProgress, error)
+	GetLessonNotificationData(ctx context.Context, lessonID uuid.UUID) (*progressdomain.LessonNotificationData, error)
 	GetCourseProgress(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (*progressdomain.CourseProgress, error)
 	ListCourseProgress(ctx context.Context, userID uuid.UUID) ([]progressdomain.CourseProgress, error)
+}
+
+type NotificationSender interface {
+	SendEvent(ctx context.Context, userID uuid.UUID, event string, data map[string]any) error
 }

@@ -38,6 +38,7 @@ import (
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
 	cacheclient "curriculum-service/internal/service/cache"
+	"curriculum-service/internal/service/notification"
 	"curriculum-service/internal/service/storage"
 	achievementusecase "curriculum-service/internal/usecase/achievement"
 	certificateusecase "curriculum-service/internal/usecase/certificate"
@@ -172,6 +173,15 @@ func main() {
 		log.Fatal("error configuring storage service client:", err)
 	}
 
+	notificationClient, err := notification.NewClient(notification.ClientConfig{
+		BaseURL:        cfg.Notification.URL,
+		Timeout:        cfg.Notification.Timeout,
+		InternalAPIKey: cfg.Notification.InternalAPIKey,
+	})
+	if err != nil {
+		log.Fatal("error configuring notification service client:", err)
+	}
+
 	courseRepo := courserepo.NewRepo(db)
 	courseUseCase := courseusecase.New(courseRepo, reviewRepo, moduleRepo)
 	courseHandler := coursehandler.New(courseUseCase, jwtMgr)
@@ -185,7 +195,7 @@ func main() {
 	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
 
 	progressRepo := progressrepo.NewRepo(db)
-	progressUseCase := progressusecase.New(progressRepo)
+	progressUseCase := progressusecase.New(progressRepo, notificationClient)
 	progressHandler := progresshandler.NewHandler(progressUseCase, jwtMgr)
 
 	achievementRepo := achievementrepo.NewRepo(db)
