@@ -114,6 +114,31 @@ func (r *Repo) ListAchievements(ctx context.Context, userID uuid.UUID) ([]achiev
 	return items, nil
 }
 
+func (r *Repo) SyncUnlockedAchievements(ctx context.Context, userID uuid.UUID) ([]achievementdomain.Achievement, error) {
+	before, err := r.unlockedAchievementIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	items, err := r.ListAchievements(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	newlyUnlocked := make([]achievementdomain.Achievement, 0)
+	for _, item := range items {
+		if !item.Unlocked {
+			continue
+		}
+		if _, existed := before[item.ID]; existed {
+			continue
+		}
+		newlyUnlocked = append(newlyUnlocked, item)
+	}
+
+	return newlyUnlocked, nil
+}
+
 func (r *Repo) syncUserAchievements(ctx context.Context, userID uuid.UUID) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var achievements []struct {
@@ -281,4 +306,24 @@ func progressForMetric(totals metricTotals, metricKey string) int {
 	default:
 		return 0
 	}
+}
+
+func (r *Repo) unlockedAchievementIDs(ctx context.Context, userID uuid.UUID) (map[uuid.UUID]struct{}, error) {
+	var rows []struct {
+		AchievementID uuid.UUID `gorm:"column:achievement_id"`
+	}
+	if err := r.db.WithContext(ctx).Raw(`
+		SELECT achievement_id
+		FROM user_achievements
+		WHERE user_id = ?
+		  AND unlocked = true
+	`, userID).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID]struct{}, len(rows))
+	for _, row := range rows {
+		result[row.AchievementID] = struct{}{}
+	}
+	return result, nil
 }

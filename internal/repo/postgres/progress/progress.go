@@ -145,6 +145,41 @@ func (r *Repo) GetLessonNotificationData(ctx context.Context, lessonID uuid.UUID
 	return &row, nil
 }
 
+func (r *Repo) SyncUserLevel(ctx context.Context, userID uuid.UUID) (*int, error) {
+	var row struct {
+		CurrentLevel  int `gorm:"column:current_level"`
+		ComputedLevel int `gorm:"column:computed_level"`
+	}
+	if err := r.db.WithContext(ctx).Raw(`
+		SELECT
+			COALESCE(level, 0)::int AS current_level,
+			(
+				1 + (
+					COALESCE((SELECT SUM(xp) FROM user_course_points WHERE user_id = users.id), 0)::bigint / 180
+				)
+			)::int AS computed_level
+		FROM users
+		WHERE id = ?
+	`, userID).Scan(&row).Error; err != nil {
+		return nil, err
+	}
+
+	if row.ComputedLevel != row.CurrentLevel {
+		if err := r.db.WithContext(ctx).Exec(`
+			UPDATE users
+			SET level = ?
+			WHERE id = ?
+		`, row.ComputedLevel, userID).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	if row.ComputedLevel > row.CurrentLevel {
+		return &row.ComputedLevel, nil
+	}
+	return nil, nil
+}
+
 func (r *Repo) ListCourseProgress(ctx context.Context, userID uuid.UUID) ([]progressdomain.CourseProgress, error) {
 	var rows []struct {
 		CourseID uuid.UUID `gorm:"column:course_id"`

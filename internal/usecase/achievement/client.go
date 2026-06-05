@@ -9,4 +9,5 @@ import (
 
 type client interface {
 	ListAchievements(ctx context.Context, userID uuid.UUID) ([]achievementdomain.Achievement, error)
+	SyncUnlockedAchievements(ctx context.Context, userID uuid.UUID) ([]achievementdomain.Achievement, error)
 }

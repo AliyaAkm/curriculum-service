@@ -10,7 +10,6 @@ import (
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
-	"curriculum-service/internal/http/handlers/practice"
 	"curriculum-service/internal/http/handlers/progress"
 	"curriculum-service/internal/http/handlers/quiz"
 	"curriculum-service/internal/http/handlers/review"
@@ -33,7 +32,6 @@ type Handler struct {
 	Locale           *locale.Handler
 	Module           *module.Handler
 	Lesson           *lesson.Handler
-	Practice         *practice.Handler
 	Progress         *progress.Handler
 	Certificate      *certificate.Handler
 	Quiz             *quiz.Handler
@@ -91,13 +89,6 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	r.PUT("/lesson/:id", handler.Lesson.UpdateLesson)
 	r.POST("/lesson/:id/video", handler.Lesson.UploadLessonVideo)
 	r.POST("/lesson", handler.Lesson.CreateLesson)
-
-	// practice
-	r.POST("/practice", handler.Practice.CreatePractice)
-	r.GET("/practice", handler.Practice.GetPracticeByLessonID)
-	r.GET("/practice/:id", handler.Practice.GetPracticeByID)
-	r.PUT("/practice/:id", handler.Practice.UpdatePractice)
-	r.DELETE("/practice/:id", handler.Practice.DeletePractice)
 
 	// quiz
 	r.POST("/quiz", handler.Quiz.CreateQuiz)

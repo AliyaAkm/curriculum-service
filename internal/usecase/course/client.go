@@ -27,3 +27,7 @@ type ModuleRepository interface {
 	GetModuleByCourseID(ctx context.Context, courseID uuid.UUID) ([]module.Module, error)
 	GetLimitedModulesByCourseID(ctx context.Context, courseID uuid.UUID, limit int) ([]module.Module, error)
 }
+
+type NotificationSender interface {
+	SendEvent(ctx context.Context, userID uuid.UUID, event string, data map[string]any) error
+}

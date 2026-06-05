@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 	"curriculum-service/internal/domain"
+	achievementdomain "curriculum-service/internal/domain/achievement"
 	quizdomain "curriculum-service/internal/domain/quiz"
 
 	"github.com/google/uuid"
@@ -70,6 +71,21 @@ func (u *UseCase) SubmitAnswer(ctx context.Context, userID uuid.UUID, quizID uui
 		correctOptionID = quizEntity.Options[quizEntity.CorrectAnswerIndex].ID
 	}
 
+	if u.notification != nil {
+		score := "0%"
+		if isCorrect {
+			score = "100%"
+		}
+		_ = u.notification.SendEvent(ctx, userID, "assessment_completed", map[string]any{
+			"score":    score,
+			"quizId":   quizEntity.ID.String(),
+			"lessonId": quizEntity.LessonID.String(),
+		})
+		if isCorrect {
+			u.notifyUnlockedAchievements(ctx, userID)
+		}
+	}
+
 	return &quizdomain.AnswerResult{
 		QuizID:              quizEntity.ID,
 		SelectedAnswerIndex: selectedAnswerIndex,
@@ -127,6 +143,37 @@ func (u *UseCase) requireLessonAccess(ctx context.Context, userID uuid.UUID, les
 	}
 
 	return nil
+}
+
+func (u *UseCase) notifyUnlockedAchievements(ctx context.Context, userID uuid.UUID) {
+	if u.notification == nil || u.achievements == nil {
+		return
+	}
+
+	items, err := u.achievements.SyncUnlockedAchievements(ctx, userID)
+	if err != nil {
+		return
+	}
+	for _, item := range items {
+		_ = u.notification.SendEvent(ctx, userID, "achievement_unlocked", map[string]any{
+			"achievementId":    item.ID.String(),
+			"achievementCode":  item.Code,
+			"achievementTitle": achievementTitle(item),
+		})
+	}
+}
+
+func achievementTitle(value achievementdomain.Achievement) string {
+	switch {
+	case value.Title.RU != "":
+		return value.Title.RU
+	case value.Title.EN != "":
+		return value.Title.EN
+	case value.Title.KK != "":
+		return value.Title.KK
+	default:
+		return "новое достижение"
+	}
 }
 
 func prepareQuiz(value *quizdomain.Quiz) error {

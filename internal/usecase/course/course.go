@@ -46,7 +46,23 @@ func (u *UseCase) CreateSubscription(ctx context.Context, value *course.Subscrip
 	if err != nil {
 		return nil, err
 	}
-	return u.repo.GetSubscriptionByID(ctx, value.ID)
+	subscription, err := u.repo.GetSubscriptionByID(ctx, value.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if u.notification != nil {
+		data := map[string]any{
+			"courseId":       value.CourseID.String(),
+			"subscriptionId": value.ID.String(),
+		}
+		if courseEntity, err := u.repo.GetCourseByID(ctx, value.CourseID); err == nil && courseEntity != nil {
+			data["courseTitle"] = courseEntity.Title
+		}
+		_ = u.notification.SendEvent(ctx, value.UserID, "course_enrolled", data)
+	}
+
+	return subscription, nil
 }
 
 func (u *UseCase) GetCourseForUser(ctx context.Context, userID uuid.UUID, courseID uuid.UUID, hasFullAccess bool) (*course.CourseForUser, error) {

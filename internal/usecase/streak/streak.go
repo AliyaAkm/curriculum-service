@@ -2,6 +2,7 @@ package streak
 
 import (
 	"context"
+	achievementdomain "curriculum-service/internal/domain/achievement"
 	"curriculum-service/internal/domain/streak"
 	"time"
 
@@ -29,6 +30,7 @@ func (u *UseCase) GetStreak(ctx context.Context, userID uuid.UUID) (*streak.Dail
 		if err := u.repo.UpdateUserMaxStreak(ctx, userID, entity.Streak); err != nil {
 			return nil, err
 		}
+		u.sendDailyMissionCompleted(ctx, userID, entity.Streak)
 		return entity, nil
 	}
 
@@ -52,5 +54,48 @@ func (u *UseCase) GetStreak(ctx context.Context, userID uuid.UUID) (*streak.Dail
 	if err := u.repo.UpdateUserMaxStreak(ctx, userID, entity.Streak); err != nil {
 		return nil, err
 	}
+	u.sendDailyMissionCompleted(ctx, userID, entity.Streak)
 	return entity, nil
+}
+
+func (u *UseCase) sendDailyMissionCompleted(ctx context.Context, userID uuid.UUID, streakValue int64) {
+	if u.notification == nil {
+		return
+	}
+
+	_ = u.notification.SendEvent(ctx, userID, "daily_mission_completed", map[string]any{
+		"streak": streakValue,
+	})
+	u.notifyUnlockedAchievements(ctx, userID)
+}
+
+func (u *UseCase) notifyUnlockedAchievements(ctx context.Context, userID uuid.UUID) {
+	if u.notification == nil || u.achievements == nil {
+		return
+	}
+
+	items, err := u.achievements.SyncUnlockedAchievements(ctx, userID)
+	if err != nil {
+		return
+	}
+	for _, item := range items {
+		_ = u.notification.SendEvent(ctx, userID, "achievement_unlocked", map[string]any{
+			"achievementId":    item.ID.String(),
+			"achievementCode":  item.Code,
+			"achievementTitle": achievementTitle(item),
+		})
+	}
+}
+
+func achievementTitle(value achievementdomain.Achievement) string {
+	switch {
+	case value.Title.RU != "":
+		return value.Title.RU
+	case value.Title.EN != "":
+		return value.Title.EN
+	case value.Title.KK != "":
+		return value.Title.KK
+	default:
+		return "новое достижение"
+	}
 }

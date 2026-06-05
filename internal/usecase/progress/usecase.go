@@ -3,15 +3,17 @@ package progress
 type UseCase struct {
 	repo         Repository
 	notification NotificationSender
+	achievements AchievementSyncer
 }
 
-func New(repo Repository, notification ...NotificationSender) *UseCase {
-	var sender NotificationSender
-	if len(notification) > 0 {
-		sender = notification[0]
+func New(repo Repository, notification NotificationSender, achievements ...AchievementSyncer) *UseCase {
+	var achievementSyncer AchievementSyncer
+	if len(achievements) > 0 {
+		achievementSyncer = achievements[0]
 	}
 	return &UseCase{
 		repo:         repo,
-		notification: sender,
+		notification: notification,
+		achievements: achievementSyncer,
 	}
 }

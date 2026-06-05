@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"context"
+	achievementdomain "curriculum-service/internal/domain/achievement"
 	quizdomain "curriculum-service/internal/domain/quiz"
 
 	"github.com/google/uuid"
@@ -17,4 +18,12 @@ type Repository interface {
 	GetLessonAccessInfo(ctx context.Context, lessonID uuid.UUID) (uuid.UUID, uuid.UUID, int, error)
 	HasSubscription(ctx context.Context, userID uuid.UUID, courseID uuid.UUID) (bool, error)
 	IsModuleInFreePreview(ctx context.Context, courseID uuid.UUID, moduleID uuid.UUID, limit int) (bool, error)
+}
+
+type NotificationSender interface {
+	SendEvent(ctx context.Context, userID uuid.UUID, event string, data map[string]any) error
+}
+
+type AchievementSyncer interface {
+	SyncUnlockedAchievements(ctx context.Context, userID uuid.UUID) ([]achievementdomain.Achievement, error)
 }

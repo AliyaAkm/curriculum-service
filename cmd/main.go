@@ -11,7 +11,6 @@ import (
 	levelhandler "curriculum-service/internal/http/handlers/level"
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
-	practicehandler "curriculum-service/internal/http/handlers/practice"
 	progresshandler "curriculum-service/internal/http/handlers/progress"
 	quizhandler "curriculum-service/internal/http/handlers/quiz"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
@@ -29,7 +28,6 @@ import (
 	levelrepo "curriculum-service/internal/repo/postgres/level"
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
-	practicerepo "curriculum-service/internal/repo/postgres/practice"
 	progressrepo "curriculum-service/internal/repo/postgres/progress"
 	quizrepo "curriculum-service/internal/repo/postgres/quiz"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
@@ -49,7 +47,6 @@ import (
 	levelusecase "curriculum-service/internal/usecase/level"
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
-	practiceusecase "curriculum-service/internal/usecase/practice"
 	progressusecase "curriculum-service/internal/usecase/progress"
 	quizusecase "curriculum-service/internal/usecase/quiz"
 	reviewusecase "curriculum-service/internal/usecase/review"
@@ -116,9 +113,22 @@ func main() {
 		}
 	}()
 
+	notificationClient, err := notification.NewClient(notification.ClientConfig{
+		BaseURL:        cfg.Notification.URL,
+		Timeout:        cfg.Notification.Timeout,
+		InternalAPIKey: cfg.Notification.InternalAPIKey,
+	})
+	if err != nil {
+		log.Fatal("error configuring notification service client:", err)
+	}
+
+	achievementRepo := achievementrepo.NewRepo(db)
+	achievementUseCase := achievementusecase.New(achievementRepo)
+	achievementHandler := achievementhandler.NewHandler(achievementUseCase, jwtMgr)
+
 	// daily streak
 	streakRepo := streakrepo.NewRepo(db)
-	streakUseCase := streakusecase.New(streakRepo)
+	streakUseCase := streakusecase.New(streakRepo, notificationClient, achievementUseCase)
 	streakHandler := streakhandler.NewHandler(streakUseCase, jwtMgr)
 
 	// status course
@@ -173,41 +183,24 @@ func main() {
 		log.Fatal("error configuring storage service client:", err)
 	}
 
-	notificationClient, err := notification.NewClient(notification.ClientConfig{
-		BaseURL:        cfg.Notification.URL,
-		Timeout:        cfg.Notification.Timeout,
-		InternalAPIKey: cfg.Notification.InternalAPIKey,
-	})
-	if err != nil {
-		log.Fatal("error configuring notification service client:", err)
-	}
-
 	courseRepo := courserepo.NewRepo(db)
-	courseUseCase := courseusecase.New(courseRepo, reviewRepo, moduleRepo)
+	courseUseCase := courseusecase.New(courseRepo, reviewRepo, moduleRepo, notificationClient)
 	courseHandler := coursehandler.New(courseUseCase, jwtMgr)
 
 	lessonRepo := lessonrepo.NewRepo(db)
 	lessonUseCase := lessonusecase.New(lessonRepo)
 	lessonHandler := lessonhandler.NewHandler(lessonUseCase, localeUseCase, storageClient, jwtMgr)
 
-	practiceRepo := practicerepo.NewRepo(db)
-	practiceUseCase := practiceusecase.New(practiceRepo)
-	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
-
 	progressRepo := progressrepo.NewRepo(db)
-	progressUseCase := progressusecase.New(progressRepo, notificationClient)
+	progressUseCase := progressusecase.New(progressRepo, notificationClient, achievementUseCase)
 	progressHandler := progresshandler.NewHandler(progressUseCase, jwtMgr)
-
-	achievementRepo := achievementrepo.NewRepo(db)
-	achievementUseCase := achievementusecase.New(achievementRepo)
-	achievementHandler := achievementhandler.NewHandler(achievementUseCase, jwtMgr)
 
 	certificateRepo := certificaterepo.NewRepo(db)
 	certificateUseCase := certificateusecase.NewUseCase(certificateRepo, storageClient)
 	certificateHandler := certificatehandler.NewHandler(certificateUseCase, jwtMgr)
 
 	quizRepo := quizrepo.NewRepo(db)
-	quizUseCase := quizusecase.New(quizRepo)
+	quizUseCase := quizusecase.New(quizRepo, notificationClient, achievementUseCase)
 	quizHandler := quizhandler.NewHandler(quizUseCase, jwtMgr)
 
 	coursePointRepo := coursepointrepo.NewRepo(db)
@@ -225,7 +218,6 @@ func main() {
 		Locale:           localeHandler,
 		Module:           moduleHandler,
 		Lesson:           lessonHandler,
-		Practice:         practiceHandler,
 		Progress:         progressHandler,
 		Certificate:      certificateHandler,
 		Quiz:             quizHandler,
