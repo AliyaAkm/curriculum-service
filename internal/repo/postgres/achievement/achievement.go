@@ -230,9 +230,7 @@ func (r *Repo) metricTotalsTx(ctx context.Context, tx *gorm.DB, userID uuid.UUID
 				), 0)::int
 			) AS max_streak,
 			(
-				SELECT COALESCE(SUM(xp), 0)::int
-				FROM user_course_points
-				WHERE user_id = ?
+				COALESCE((SELECT SUM(xp) FROM user_xp_events WHERE user_id = ?), 0)::int
 			) AS xp_total,
 			(
 				SELECT COUNT(*)::int

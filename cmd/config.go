@@ -47,6 +47,16 @@ type NotificationServiceConfig struct {
 	InternalAPIKey string        `env:"INTERNAL_API_KEY"`
 }
 
+type CodeRunnerServiceConfig struct {
+	URL     string        `env:"URL" envDefault:"http://localhost:8091"`
+	Timeout time.Duration `env:"TIMEOUT" envDefault:"30s"`
+}
+
+type AIServiceConfig struct {
+	URL     string        `env:"URL" envDefault:"http://localhost:8088"`
+	Timeout time.Duration `env:"TIMEOUT" envDefault:"5s"`
+}
+
 type RedisConfig struct {
 	Addr          string        `env:"ADDR" envDefault:""`
 	Password      string        `env:"PASSWORD" envDefault:""`
@@ -63,6 +73,8 @@ type Config struct {
 	Redis        RedisConfig               `envPrefix:"REDIS_"`
 	Storage      StorageServiceConfig      `envPrefix:"STORAGE_SERVICE_"`
 	Notification NotificationServiceConfig `envPrefix:"NOTIFICATION_SERVICE_"`
+	CodeRunner   CodeRunnerServiceConfig   `envPrefix:"CODE_RUNNER_SERVICE_"`
+	AI           AIServiceConfig           `envPrefix:"AI_SERVICE_"`
 }
 
 func ReadEnv() (*Config, error) {

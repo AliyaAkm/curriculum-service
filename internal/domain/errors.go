@@ -14,6 +14,7 @@ var (
 	ErrCourseNotCompleted     = errors.New("course is not completed")
 	ErrCertificateUnavailable = errors.New("certificate is not available for this course")
 	ErrLessonNotFound         = errors.New("lesson not found")
+	ErrPracticeNotFound       = errors.New("practice not found")
 	ErrQuizNotFound           = errors.New("quiz not found")
 	ErrInactiveUser           = errors.New("user inactive")
 	ErrInvalidToken           = errors.New("token inactive")

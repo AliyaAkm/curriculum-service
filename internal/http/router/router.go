@@ -3,6 +3,7 @@ package router
 import (
 	"curriculum-service/internal/http/handlers/achievement"
 	"curriculum-service/internal/http/handlers/certificate"
+	"curriculum-service/internal/http/handlers/codeattempt"
 	"curriculum-service/internal/http/handlers/course"
 	"curriculum-service/internal/http/handlers/coursepoint"
 	"curriculum-service/internal/http/handlers/durationcategory"
@@ -10,11 +11,13 @@ import (
 	"curriculum-service/internal/http/handlers/level"
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
+	"curriculum-service/internal/http/handlers/practice"
 	"curriculum-service/internal/http/handlers/progress"
 	"curriculum-service/internal/http/handlers/quiz"
 	"curriculum-service/internal/http/handlers/review"
 	"curriculum-service/internal/http/handlers/status"
 	"curriculum-service/internal/http/handlers/streak"
+	"curriculum-service/internal/http/handlers/studentstats"
 	"curriculum-service/internal/http/handlers/tag"
 	"curriculum-service/internal/http/handlers/topic"
 
@@ -38,6 +41,9 @@ type Handler struct {
 	Review           *review.Handler
 	CoursePoint      *coursepoint.Handler
 	Streak           *streak.Handler
+	CodeAttempt      *codeattempt.Handler
+	StudentStats     *studentstats.Handler
+	Practice         *practice.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -85,6 +91,7 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 	// lesson
 	r.GET("/module/lesson/:id", handler.Lesson.GetAllLessons)
 	r.GET("/lesson/:id", handler.Lesson.GetLessonByID)
+	r.GET("/lesson/:id/practice", handler.Practice.ListByLesson)
 	r.POST("/lesson/:id/complete", handler.Progress.CompleteLesson)
 	r.PUT("/lesson/:id", handler.Lesson.UpdateLesson)
 	r.POST("/lesson/:id/video", handler.Lesson.UploadLessonVideo)
@@ -116,6 +123,16 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 
 	// daily streak
 	r.GET("/streak", handler.Streak.GetStreak)
+
+	// code practice
+	r.POST("/practice", handler.Practice.Create)
+	r.GET("/practice/:id", handler.Practice.GetByID)
+	r.PUT("/practice/:id", handler.Practice.Update)
+	r.DELETE("/practice/:id", handler.Practice.Delete)
+	r.POST("/practice/:id/run", handler.CodeAttempt.Run)
+
+	// student analytics
+	r.GET("/student/statistics", handler.StudentStats.GetStatistics)
 
 	return r
 }

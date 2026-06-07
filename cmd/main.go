@@ -4,6 +4,7 @@ import (
 	"context"
 	achievementhandler "curriculum-service/internal/http/handlers/achievement"
 	certificatehandler "curriculum-service/internal/http/handlers/certificate"
+	codeattempthandler "curriculum-service/internal/http/handlers/codeattempt"
 	coursehandler "curriculum-service/internal/http/handlers/course"
 	coursepointhandler "curriculum-service/internal/http/handlers/coursepoint"
 	durationcategoryhandler "curriculum-service/internal/http/handlers/durationcategory"
@@ -11,16 +12,19 @@ import (
 	levelhandler "curriculum-service/internal/http/handlers/level"
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
+	practicehandler "curriculum-service/internal/http/handlers/practice"
 	progresshandler "curriculum-service/internal/http/handlers/progress"
 	quizhandler "curriculum-service/internal/http/handlers/quiz"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
 	statushandler "curriculum-service/internal/http/handlers/status"
 	streakhandler "curriculum-service/internal/http/handlers/streak"
+	studentstatshandler "curriculum-service/internal/http/handlers/studentstats"
 	taghandler "curriculum-service/internal/http/handlers/tag"
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	dictionarycache "curriculum-service/internal/repo/cache/dictionary"
 	achievementrepo "curriculum-service/internal/repo/postgres/achievement"
 	certificaterepo "curriculum-service/internal/repo/postgres/certificate"
+	codeattemptrepo "curriculum-service/internal/repo/postgres/codeattempt"
 	courserepo "curriculum-service/internal/repo/postgres/course"
 	coursepointrepo "curriculum-service/internal/repo/postgres/coursepoint"
 	durationcategoryrepo "curriculum-service/internal/repo/postgres/durationcategory"
@@ -28,18 +32,23 @@ import (
 	levelrepo "curriculum-service/internal/repo/postgres/level"
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
+	practicerepo "curriculum-service/internal/repo/postgres/practice"
 	progressrepo "curriculum-service/internal/repo/postgres/progress"
 	quizrepo "curriculum-service/internal/repo/postgres/quiz"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
 	statusrepo "curriculum-service/internal/repo/postgres/status"
 	streakrepo "curriculum-service/internal/repo/postgres/streak"
+	studentstatsrepo "curriculum-service/internal/repo/postgres/studentstats"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
+	"curriculum-service/internal/service/aianalytics"
 	cacheclient "curriculum-service/internal/service/cache"
+	"curriculum-service/internal/service/coderunner"
 	"curriculum-service/internal/service/notification"
 	"curriculum-service/internal/service/storage"
 	achievementusecase "curriculum-service/internal/usecase/achievement"
 	certificateusecase "curriculum-service/internal/usecase/certificate"
+	codeattemptusecase "curriculum-service/internal/usecase/codeattempt"
 	courseusecase "curriculum-service/internal/usecase/course"
 	coursepointusecase "curriculum-service/internal/usecase/coursepoint"
 	durationcategoryusecase "curriculum-service/internal/usecase/durationcategory"
@@ -47,11 +56,13 @@ import (
 	levelusecase "curriculum-service/internal/usecase/level"
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
+	practiceusecase "curriculum-service/internal/usecase/practice"
 	progressusecase "curriculum-service/internal/usecase/progress"
 	quizusecase "curriculum-service/internal/usecase/quiz"
 	reviewusecase "curriculum-service/internal/usecase/review"
 	statususecase "curriculum-service/internal/usecase/status"
 	streakusecase "curriculum-service/internal/usecase/streak"
+	studentstatsusecase "curriculum-service/internal/usecase/studentstats"
 	tagusecase "curriculum-service/internal/usecase/tag"
 	topicusecase "curriculum-service/internal/usecase/topic"
 	"errors"
@@ -207,6 +218,32 @@ func main() {
 	coursePointUseCase := coursepointusecase.New(coursePointRepo)
 	coursePointHandler := coursepointhandler.New(coursePointUseCase)
 
+	codeRunnerClient, err := coderunner.NewClient(coderunner.ClientConfig{
+		BaseURL: cfg.CodeRunner.URL,
+		Timeout: cfg.CodeRunner.Timeout,
+	})
+	if err != nil {
+		log.Fatal("error configuring code runner service client:", err)
+	}
+	aiAnalyticsClient, err := aianalytics.NewClient(aianalytics.ClientConfig{
+		BaseURL: cfg.AI.URL,
+		Timeout: cfg.AI.Timeout,
+	})
+	if err != nil {
+		log.Fatal("error configuring ai analytics service client:", err)
+	}
+	studentStatsRepo := studentstatsrepo.NewRepo(db)
+	studentStatsUseCase := studentstatsusecase.New(studentStatsRepo, aiAnalyticsClient)
+	studentStatsHandler := studentstatshandler.NewHandler(studentStatsUseCase, jwtMgr)
+
+	practiceRepo := practicerepo.NewRepo(db)
+	practiceUseCase := practiceusecase.New(practiceRepo)
+	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
+
+	codeAttemptRepo := codeattemptrepo.NewRepo(db)
+	codeAttemptUseCase := codeattemptusecase.New(codeAttemptRepo, codeRunnerClient, practiceUseCase)
+	codeAttemptHandler := codeattempthandler.NewHandler(codeAttemptUseCase, jwtMgr)
+
 	handler := router.Handler{
 		Achievement:      achievementHandler,
 		Status:           statusHandler,
@@ -224,6 +261,9 @@ func main() {
 		Review:           reviewHandler,
 		CoursePoint:      coursePointHandler,
 		Streak:           streakHandler,
+		CodeAttempt:      codeAttemptHandler,
+		StudentStats:     studentStatsHandler,
+		Practice:         practiceHandler,
 	}
 
 	engine := router.New(

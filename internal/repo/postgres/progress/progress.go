@@ -155,7 +155,7 @@ func (r *Repo) SyncUserLevel(ctx context.Context, userID uuid.UUID) (*int, error
 			COALESCE(level, 0)::int AS current_level,
 			(
 				1 + (
-					COALESCE((SELECT SUM(xp) FROM user_course_points WHERE user_id = users.id), 0)::bigint / 180
+					COALESCE((SELECT SUM(xp) FROM user_xp_events WHERE user_id = users.id), 0)::bigint / 180
 				)
 			)::int AS computed_level
 		FROM users

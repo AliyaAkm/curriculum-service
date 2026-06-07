@@ -45,16 +45,12 @@ func (r *Repo) GetCoursePointByCourseID(ctx context.Context, id uuid.UUID) ([]co
 
 	err := r.db.WithContext(ctx).Raw(`
 		SELECT
-			up.user_id,
-			SUM(up.xp) AS xp,
-			cs.id AS course_id
-		FROM user_course_points up
-		JOIN course_lessons cl ON up.lesson_id = cl.id
-		JOIN course_modules cm ON cl.module_id = cm.id
-		JOIN courses cs ON cm.course_id = cs.id
-		WHERE cs.id = ?
-		GROUP BY up.user_id, cs.id
-		ORDER BY SUM(up.xp) DESC, MIN(up.updated_at) ASC
+			user_id,
+			SUM(xp) AS xp
+		FROM user_xp_events
+		WHERE course_id = ?
+		GROUP BY user_id
+		ORDER BY SUM(xp) DESC, MIN(activity_at) ASC
 	`, id).Scan(&entity).Error
 
 	if err != nil {
