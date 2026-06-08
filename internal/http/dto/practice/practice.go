@@ -15,6 +15,7 @@ type TaskRequest struct {
 	StarterCode    string    `json:"starter_code"`
 	ExpectedOutput string    `json:"expected_output"`
 	XPReward       int       `json:"xp_reward"`
+	CheckType      string    `json:"check_type"`
 }
 
 type TaskUpdateRequest struct {
@@ -24,6 +25,7 @@ type TaskUpdateRequest struct {
 	StarterCode    *string `json:"starter_code"`
 	ExpectedOutput *string `json:"expected_output"`
 	XPReward       *int    `json:"xp_reward"`
+	CheckType      *string `json:"check_type"`
 }
 
 type TaskResponse struct {
@@ -38,6 +40,7 @@ type TaskResponse struct {
 	StarterCode    string    `json:"starter_code"`
 	ExpectedOutput string    `json:"expected_output,omitempty"`
 	XPReward       int       `json:"xp_reward"`
+	CheckType      string    `json:"check_type"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

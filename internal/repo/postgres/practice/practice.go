@@ -20,9 +20,10 @@ func (r *Repo) Create(ctx context.Context, value practicedomain.Task) error {
 			language,
 			starter_code,
 			expected_output,
-			xp_reward
+			xp_reward,
+			check_type
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, value.ID,
 		value.LessonID,
 		value.Position,
@@ -32,6 +33,7 @@ func (r *Repo) Create(ctx context.Context, value practicedomain.Task) error {
 		value.StarterCode,
 		value.ExpectedOutput,
 		value.XPReward,
+		value.CheckType,
 	).Error
 }
 
@@ -56,6 +58,9 @@ func (r *Repo) Update(ctx context.Context, id uuid.UUID, value practicedomain.Ta
 	}
 	if value.XPReward != nil {
 		updates["xp_reward"] = *value.XPReward
+	}
+	if value.CheckType != nil {
+		updates["check_type"] = *value.CheckType
 	}
 
 	result := r.db.WithContext(ctx).
@@ -124,6 +129,7 @@ func baseSelect() string {
 			pt.starter_code,
 			pt.expected_output,
 			pt.xp_reward,
+			pt.check_type,
 			pt.created_at,
 			pt.updated_at
 		FROM practice_tasks pt

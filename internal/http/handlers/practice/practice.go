@@ -165,6 +165,7 @@ func taskFromRequest(req practicedto.TaskRequest) practicedomain.Task {
 		StarterCode:    req.StarterCode,
 		ExpectedOutput: req.ExpectedOutput,
 		XPReward:       req.XPReward,
+		CheckType:      req.CheckType,
 	}
 }
 
@@ -176,6 +177,7 @@ func taskUpdateFromRequest(req practicedto.TaskUpdateRequest) practicedomain.Tas
 		StarterCode:    req.StarterCode,
 		ExpectedOutput: req.ExpectedOutput,
 		XPReward:       req.XPReward,
+		CheckType:      req.CheckType,
 	}
 }
 
@@ -195,6 +197,7 @@ func taskResponse(src *practicedomain.Task, includeExpected bool) practicedto.Ta
 		Language:    src.Language,
 		StarterCode: src.StarterCode,
 		XPReward:    src.XPReward,
+		CheckType:   src.CheckType,
 		CreatedAt:   src.CreatedAt,
 		UpdatedAt:   src.UpdatedAt,
 	}

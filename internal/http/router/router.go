@@ -12,6 +12,7 @@ import (
 	"curriculum-service/internal/http/handlers/locale"
 	"curriculum-service/internal/http/handlers/module"
 	"curriculum-service/internal/http/handlers/practice"
+	"curriculum-service/internal/http/handlers/practicereview"
 	"curriculum-service/internal/http/handlers/progress"
 	"curriculum-service/internal/http/handlers/quiz"
 	"curriculum-service/internal/http/handlers/review"
@@ -44,6 +45,7 @@ type Handler struct {
 	CodeAttempt      *codeattempt.Handler
 	StudentStats     *studentstats.Handler
 	Practice         *practice.Handler
+	PracticeReview   *practicereview.Handler
 }
 
 func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
@@ -126,10 +128,16 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 
 	// code practice
 	r.POST("/practice", handler.Practice.Create)
+	r.GET("/practice-submissions/my", handler.PracticeReview.ListMySubmissions)
+	r.GET("/practice-submissions/:id", handler.PracticeReview.GetMySubmission)
 	r.GET("/practice/:id", handler.Practice.GetByID)
 	r.PUT("/practice/:id", handler.Practice.Update)
 	r.DELETE("/practice/:id", handler.Practice.Delete)
 	r.POST("/practice/:id/run", handler.CodeAttempt.Run)
+	r.POST("/practice/:id/submissions", handler.PracticeReview.CreateSubmission)
+	r.GET("/teacher/practice-submissions", handler.PracticeReview.ListTeacherSubmissions)
+	r.GET("/teacher/practice-submissions/:id", handler.PracticeReview.GetTeacherSubmission)
+	r.PATCH("/teacher/practice-submissions/:id/review", handler.PracticeReview.ReviewSubmission)
 
 	// student analytics
 	r.GET("/student/statistics", handler.StudentStats.GetStatistics)

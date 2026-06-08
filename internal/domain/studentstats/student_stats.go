@@ -42,14 +42,21 @@ type QuizStats struct {
 }
 
 type PracticeStats struct {
-	Runs               int        `json:"runs"`
-	Submissions        int        `json:"submissions"`
-	SuccessfulSubmits  int        `json:"successful_submits"`
-	AttemptedPractices int        `json:"attempted_practices"`
-	CompletedPractices int        `json:"completed_practices"`
-	PassRatePercent    int        `json:"pass_rate_percent"`
-	XPEarned           int        `json:"xp_earned"`
-	LastAttemptAt      *time.Time `json:"last_attempt_at,omitempty"`
+	Runs                   int        `json:"runs"`
+	Submissions            int        `json:"submissions"`
+	SuccessfulSubmits      int        `json:"successful_submits"`
+	AttemptedPractices     int        `json:"attempted_practices"`
+	CompletedPractices     int        `json:"completed_practices"`
+	PassRatePercent        int        `json:"pass_rate_percent"`
+	XPEarned               int        `json:"xp_earned"`
+	AutoRuns               int        `json:"auto_runs"`
+	AutoSubmissions        int        `json:"auto_submissions"`
+	AutoSuccessfulSubmits  int        `json:"auto_successful_submits"`
+	ManualSubmissions      int        `json:"manual_submissions"`
+	ManualApproved         int        `json:"manual_approved"`
+	ManualPendingReview    int        `json:"manual_pending_review"`
+	ManualChangesRequested int        `json:"manual_changes_requested"`
+	LastAttemptAt          *time.Time `json:"last_attempt_at,omitempty"`
 }
 
 type AIStats struct {
@@ -87,18 +94,22 @@ type TopicProgress struct {
 }
 
 type CourseDetail struct {
-	CourseID          uuid.UUID      `json:"course_id"`
-	Title             string         `json:"title"`
-	StartedAt         *time.Time     `json:"started_at,omitempty"`
-	LastActivityAt    *time.Time     `json:"last_activity_at,omitempty"`
-	CompletedAt       *time.Time     `json:"completed_at,omitempty"`
-	CurrentLessonID   *uuid.UUID     `json:"current_lesson_id,omitempty"`
-	TotalLessons      int            `json:"total_lessons"`
-	CompletedLessons  int            `json:"completed_lessons"`
-	ProgressPercent   int            `json:"progress_percent"`
-	PracticeRuns      int            `json:"practice_runs"`
-	PracticeCompleted int            `json:"practice_completed"`
-	Modules           []ModuleDetail `json:"modules" gorm:"-"`
+	CourseID                 uuid.UUID      `json:"course_id"`
+	Title                    string         `json:"title"`
+	StartedAt                *time.Time     `json:"started_at,omitempty"`
+	LastActivityAt           *time.Time     `json:"last_activity_at,omitempty"`
+	CompletedAt              *time.Time     `json:"completed_at,omitempty"`
+	CurrentLessonID          *uuid.UUID     `json:"current_lesson_id,omitempty"`
+	TotalLessons             int            `json:"total_lessons"`
+	CompletedLessons         int            `json:"completed_lessons"`
+	ProgressPercent          int            `json:"progress_percent"`
+	PracticeRuns             int            `json:"practice_runs"`
+	PracticeSubmissions      int            `json:"practice_submissions"`
+	PracticeCompleted        int            `json:"practice_completed"`
+	PracticePendingReview    int            `json:"practice_pending_review"`
+	PracticeChangesRequested int            `json:"practice_changes_requested"`
+	PracticeXPEarned         int            `json:"practice_xp_earned"`
+	Modules                  []ModuleDetail `json:"modules" gorm:"-"`
 }
 
 type ModuleDetail struct {

@@ -6,6 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	CheckTypeAuto   = "auto"
+	CheckTypeManual = "manual"
+)
+
 type Task struct {
 	ID             uuid.UUID
 	LessonID       uuid.UUID
@@ -18,6 +23,7 @@ type Task struct {
 	StarterCode    string
 	ExpectedOutput string
 	XPReward       int
+	CheckType      string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -29,4 +35,5 @@ type TaskUpdate struct {
 	StarterCode    *string
 	ExpectedOutput *string
 	XPReward       *int
+	CheckType      *string
 }

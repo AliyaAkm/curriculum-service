@@ -13,6 +13,10 @@ func (u *UseCase) Create(ctx context.Context, value practicedomain.Task) (*pract
 	if value.XPReward == 0 {
 		value.XPReward = 25
 	}
+	if strings.TrimSpace(value.CheckType) == "" {
+		value.CheckType = practicedomain.CheckTypeAuto
+	}
+	value.CheckType = strings.TrimSpace(value.CheckType)
 	if err := validate(value); err != nil {
 		return nil, err
 	}
@@ -29,6 +33,10 @@ func (u *UseCase) Update(ctx context.Context, id uuid.UUID, value practicedomain
 	}
 	if err := validateUpdate(value); err != nil {
 		return nil, err
+	}
+	if value.CheckType != nil {
+		trimmed := strings.TrimSpace(*value.CheckType)
+		value.CheckType = &trimmed
 	}
 	if err := u.repo.Update(ctx, id, value); err != nil {
 		return nil, err
@@ -63,7 +71,11 @@ func validate(value practicedomain.Task) error {
 		strings.TrimSpace(value.Title) == "" ||
 		strings.TrimSpace(value.Language) == "" ||
 		strings.TrimSpace(value.StarterCode) == "" ||
-		value.XPReward <= 0 {
+		value.XPReward <= 0 ||
+		!isCheckType(value.CheckType) {
+		return domain.ErrValidation
+	}
+	if value.CheckType == practicedomain.CheckTypeAuto && strings.TrimSpace(value.ExpectedOutput) == "" {
 		return domain.ErrValidation
 	}
 	return nil
@@ -75,7 +87,8 @@ func validateUpdate(value practicedomain.TaskUpdate) error {
 		value.Language == nil &&
 		value.StarterCode == nil &&
 		value.ExpectedOutput == nil &&
-		value.XPReward == nil {
+		value.XPReward == nil &&
+		value.CheckType == nil {
 		return domain.ErrValidation
 	}
 	if value.XPReward != nil && *value.XPReward <= 0 {
@@ -90,5 +103,17 @@ func validateUpdate(value practicedomain.TaskUpdate) error {
 	if value.StarterCode != nil && strings.TrimSpace(*value.StarterCode) == "" {
 		return domain.ErrValidation
 	}
+	if value.CheckType != nil && !isCheckType(*value.CheckType) {
+		return domain.ErrValidation
+	}
 	return nil
+}
+
+func isCheckType(value string) bool {
+	switch strings.TrimSpace(value) {
+	case practicedomain.CheckTypeAuto, practicedomain.CheckTypeManual:
+		return true
+	default:
+		return false
+	}
 }

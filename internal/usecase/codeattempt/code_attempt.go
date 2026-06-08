@@ -9,6 +9,7 @@ import (
 
 	"curriculum-service/internal/domain"
 	codeattemptdomain "curriculum-service/internal/domain/codeattempt"
+	practicedomain "curriculum-service/internal/domain/practice"
 
 	"github.com/google/uuid"
 )
@@ -42,6 +43,9 @@ func (u *UseCase) Run(ctx context.Context, req codeattemptdomain.RunRequest) (*c
 	}
 	if runType != codeattemptdomain.RunTypeRun && runType != codeattemptdomain.RunTypeSubmit {
 		return nil, domain.ErrValidation
+	}
+	if practice.CheckType == practicedomain.CheckTypeManual && runType == codeattemptdomain.RunTypeSubmit {
+		return nil, domain.ErrPracticeAutoSubmitNotAllowed
 	}
 	if !strings.EqualFold(strings.TrimSpace(req.Language), strings.TrimSpace(practice.Language)) {
 		return nil, domain.ErrValidation

@@ -3,6 +3,7 @@ package codeattempt
 import (
 	"context"
 	codeattemptdomain "curriculum-service/internal/domain/codeattempt"
+	practicereviewdomain "curriculum-service/internal/domain/practicereview"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -49,13 +50,24 @@ func (r *Repo) CreateAttempt(ctx context.Context, value codeattemptdomain.Attemp
 			return err
 		}
 
-		if value.RunType != codeattemptdomain.RunTypeSubmit || !value.Passed || value.XPReward <= 0 {
-			return updateCourseActivityByPracticeTx(ctx, tx, value)
-		}
-
 		practiceID, err := uuid.Parse(value.PracticeID)
 		if err != nil {
 			return err
+		}
+
+		progressStatus := practicereviewdomain.ProgressStatusInProgress
+		if value.RunType == codeattemptdomain.RunTypeSubmit && value.Passed {
+			progressStatus = practicereviewdomain.ProgressStatusCompleted
+		}
+
+		if value.CourseID != nil && value.LessonID != nil {
+			if err := upsertPracticeProgressByAttemptTx(ctx, tx, value, practiceID, progressStatus); err != nil {
+				return err
+			}
+		}
+
+		if value.RunType != codeattemptdomain.RunTypeSubmit || !value.Passed || value.XPReward <= 0 {
+			return updateCourseActivityByPracticeTx(ctx, tx, value)
 		}
 
 		result := tx.WithContext(ctx).Exec(`
@@ -94,6 +106,56 @@ func (r *Repo) CreateAttempt(ctx context.Context, value codeattemptdomain.Attemp
 	}
 
 	return &value, nil
+}
+
+func upsertPracticeProgressByAttemptTx(ctx context.Context, tx *gorm.DB, value codeattemptdomain.Attempt, practiceID uuid.UUID, status string) error {
+	completedExpr := "student_practice_progress.completed_at"
+	if status == practicereviewdomain.ProgressStatusCompleted {
+		completedExpr = "COALESCE(student_practice_progress.completed_at, NOW())"
+	}
+
+	return tx.WithContext(ctx).Exec(`
+		INSERT INTO student_practice_progress (
+			id,
+			student_id,
+			practice_id,
+			course_id,
+			lesson_id,
+			status,
+			started_at,
+			completed_at,
+			last_attempt_at,
+			attempts_count
+		)
+		VALUES (
+			?,
+			?,
+			?,
+			?,
+			?,
+			?,
+			NOW(),
+			CASE WHEN ? = 'completed' THEN NOW() ELSE NULL END,
+			NOW(),
+			1
+		)
+		ON CONFLICT (student_id, practice_id) DO UPDATE
+		SET status = CASE
+				WHEN student_practice_progress.status = 'completed' THEN student_practice_progress.status
+				ELSE EXCLUDED.status
+			END,
+		    completed_at = `+completedExpr+`,
+		    last_attempt_at = NOW(),
+		    attempts_count = student_practice_progress.attempts_count + 1,
+		    updated_at = NOW()
+	`, uuid.New(),
+		value.UserID,
+		practiceID,
+		*value.CourseID,
+		*value.LessonID,
+		status,
+		status,
+	).Error
 }
 
 func updateCourseActivityByPracticeTx(ctx context.Context, tx *gorm.DB, value codeattemptdomain.Attempt) error {

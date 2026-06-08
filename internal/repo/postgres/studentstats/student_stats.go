@@ -67,6 +67,8 @@ func (r *Repo) getSummary(ctx context.Context, userID uuid.UUID) (studentstats.S
 				UNION ALL
 				SELECT MAX(created_at) AS activity_at FROM code_execution_attempts WHERE user_id = ?
 				UNION ALL
+				SELECT MAX(last_attempt_at) AS activity_at FROM student_practice_progress WHERE student_id = ?
+				UNION ALL
 				SELECT MAX(last_activity_at) AS activity_at FROM course_subscription WHERE user_id = ?
 			) source
 		)
@@ -96,7 +98,7 @@ func (r *Repo) getSummary(ctx context.Context, userID uuid.UUID) (studentstats.S
 			COALESCE((SELECT COUNT(*) FROM achievements WHERE is_active = true), 0)::int AS total_achievements,
 			last_activity.value AS last_activity_at
 		FROM last_activity
-	`, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&row).Error
+	`, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID, userID).Scan(&row).Error
 	if err != nil {
 		return studentstats.Summary{}, err
 	}
@@ -123,17 +125,58 @@ func (r *Repo) getQuizStats(ctx context.Context, userID uuid.UUID) (studentstats
 func (r *Repo) getPracticeStats(ctx context.Context, userID uuid.UUID) (studentstats.PracticeStats, error) {
 	var row studentstats.PracticeStats
 	err := r.db.WithContext(ctx).Raw(`
+		WITH auto_attempts AS (
+			SELECT
+				COUNT(*) FILTER (WHERE run_type = 'run')::int AS runs,
+				COUNT(*) FILTER (WHERE run_type = 'submit')::int AS auto_submissions,
+				COUNT(*) FILTER (WHERE run_type = 'submit' AND passed = true)::int AS successful_submits,
+				COUNT(DISTINCT practice_id)::int AS attempted_practices,
+				MAX(created_at) AS last_attempt_at
+			FROM code_execution_attempts
+			WHERE user_id = ?
+		),
+		manual_submissions AS (
+			SELECT
+				COUNT(*)::int AS submissions,
+				COUNT(*) FILTER (WHERE status = 'approved')::int AS approved_submissions,
+				COUNT(*) FILTER (WHERE status IN ('submitted', 'in_review'))::int AS pending_reviews,
+				COUNT(*) FILTER (WHERE status = 'changes_requested')::int AS changes_requested,
+				MAX(created_at) AS last_attempt_at
+			FROM practice_review_submissions
+			WHERE student_id = ?
+		),
+		progress AS (
+			SELECT
+				COUNT(DISTINCT practice_id)::int AS attempted_practices,
+				COUNT(DISTINCT practice_id) FILTER (WHERE status = 'completed')::int AS completed_practices,
+				MAX(last_attempt_at) AS last_attempt_at
+			FROM student_practice_progress
+			WHERE student_id = ?
+		)
 		SELECT
-			COUNT(*) FILTER (WHERE run_type = 'run')::int AS runs,
-			COUNT(*) FILTER (WHERE run_type = 'submit')::int AS submissions,
-			COUNT(*) FILTER (WHERE run_type = 'submit' AND passed = true)::int AS successful_submits,
-			COUNT(DISTINCT practice_id)::int AS attempted_practices,
-			COUNT(DISTINCT practice_id) FILTER (WHERE run_type = 'submit' AND passed = true)::int AS completed_practices,
+			COALESCE(auto_attempts.runs, 0)::int AS runs,
+			(COALESCE(auto_attempts.auto_submissions, 0) + COALESCE(manual_submissions.submissions, 0))::int AS submissions,
+			(COALESCE(auto_attempts.successful_submits, 0) + COALESCE(manual_submissions.approved_submissions, 0))::int AS successful_submits,
+			GREATEST(COALESCE(auto_attempts.attempted_practices, 0), COALESCE(progress.attempted_practices, 0))::int AS attempted_practices,
+			COALESCE(progress.completed_practices, 0)::int AS completed_practices,
 			COALESCE((SELECT SUM(xp) FROM practice_xp_awards WHERE user_id = ?), 0)::int AS xp_earned,
-			MAX(created_at) AS last_attempt_at
-		FROM code_execution_attempts
-		WHERE user_id = ?
-	`, userID, userID).Scan(&row).Error
+			COALESCE(auto_attempts.runs, 0)::int AS auto_runs,
+			COALESCE(auto_attempts.auto_submissions, 0)::int AS auto_submissions,
+			COALESCE(auto_attempts.successful_submits, 0)::int AS auto_successful_submits,
+			COALESCE(manual_submissions.submissions, 0)::int AS manual_submissions,
+			COALESCE(manual_submissions.approved_submissions, 0)::int AS manual_approved,
+			COALESCE(manual_submissions.pending_reviews, 0)::int AS manual_pending_review,
+			COALESCE(manual_submissions.changes_requested, 0)::int AS manual_changes_requested,
+			(
+				SELECT MAX(value)
+				FROM (VALUES
+					(auto_attempts.last_attempt_at),
+					(manual_submissions.last_attempt_at),
+					(progress.last_attempt_at)
+				) AS activity(value)
+			) AS last_attempt_at
+		FROM auto_attempts, manual_submissions, progress
+	`, userID, userID, userID, userID).Scan(&row).Error
 	if err != nil {
 		return studentstats.PracticeStats{}, err
 	}
@@ -167,13 +210,43 @@ func (r *Repo) getActivity(ctx context.Context, userID uuid.UUID) ([]studentstat
 		),
 		practice AS (
 			SELECT
-				created_at::date AS day,
-				COUNT(*)::int AS practice_attempts,
-				COUNT(*) FILTER (WHERE run_type = 'submit' AND passed = true)::int AS practice_completed
-			FROM code_execution_attempts
-			WHERE user_id = ?
-			  AND created_at >= CURRENT_DATE - INTERVAL '29 days'
-			GROUP BY created_at::date
+				day,
+				SUM(practice_attempts)::int AS practice_attempts,
+				SUM(practice_completed)::int AS practice_completed
+			FROM (
+				SELECT
+					created_at::date AS day,
+					COUNT(*)::int AS practice_attempts,
+					0::int AS practice_completed
+				FROM code_execution_attempts
+				WHERE user_id = ?
+				  AND created_at >= CURRENT_DATE - INTERVAL '29 days'
+				GROUP BY created_at::date
+
+				UNION ALL
+
+				SELECT
+					created_at::date AS day,
+					COUNT(*)::int AS practice_attempts,
+					0::int AS practice_completed
+				FROM practice_review_submissions
+				WHERE student_id = ?
+				  AND created_at >= CURRENT_DATE - INTERVAL '29 days'
+				GROUP BY created_at::date
+
+				UNION ALL
+
+				SELECT
+					completed_at::date AS day,
+					0::int AS practice_attempts,
+					COUNT(*)::int AS practice_completed
+				FROM student_practice_progress
+				WHERE student_id = ?
+				  AND status = 'completed'
+				  AND completed_at >= CURRENT_DATE - INTERVAL '29 days'
+				GROUP BY completed_at::date
+			) source
+			GROUP BY day
 		),
 		xp_events AS (
 			SELECT activity_at::date AS day, COALESCE(SUM(xp), 0)::int AS xp
@@ -196,7 +269,7 @@ func (r *Repo) getActivity(ctx context.Context, userID uuid.UUID) ([]studentstat
 		LEFT JOIN practice ON practice.day = days.day
 		LEFT JOIN xp_events ON xp_events.day = days.day
 		ORDER BY days.day ASC
-	`, userID, userID, userID, userID).Scan(&rows).Error
+	`, userID, userID, userID, userID, userID, userID).Scan(&rows).Error
 	return rows, err
 }
 
@@ -253,26 +326,72 @@ func (r *Repo) getTopicProgress(ctx context.Context, userID uuid.UUID) ([]studen
 func (r *Repo) getCourseProgress(ctx context.Context, userID uuid.UUID) ([]studentstats.CourseDetail, error) {
 	var courseRows []studentstats.CourseDetail
 	if err := r.db.WithContext(ctx).Raw(`
+		WITH subscriptions AS (
+			SELECT
+				user_id,
+				course_id,
+				MIN(started_at) AS started_at,
+				MAX(last_activity_at) AS last_activity_at,
+				MIN(completed_at) AS completed_at,
+				(
+					ARRAY_AGG(current_lesson_id ORDER BY last_activity_at DESC NULLS LAST, started_at DESC NULLS LAST)
+					FILTER (WHERE current_lesson_id IS NOT NULL)
+				)[1] AS current_lesson_id
+			FROM course_subscription
+			WHERE user_id = ?
+			GROUP BY user_id, course_id
+		)
 		SELECT
 			c.id AS course_id,
 			c.title,
 			cs.started_at,
-			cs.last_activity_at,
+			(
+				SELECT MAX(value)
+				FROM (VALUES
+					(cs.last_activity_at),
+					(MAX(cea.created_at)),
+					(MAX(spp.last_attempt_at)),
+					(MAX(prs.updated_at))
+				) AS activity(value)
+			) AS last_activity_at,
 			cs.completed_at,
 			cs.current_lesson_id,
 			COUNT(DISTINCT cl.id)::int AS total_lessons,
 			COUNT(DISTINCT ucp.lesson_id)::int AS completed_lessons,
 			COUNT(DISTINCT cea.id) FILTER (WHERE cea.run_type = 'run')::int AS practice_runs,
-			COUNT(DISTINCT cea.practice_id) FILTER (WHERE cea.run_type = 'submit' AND cea.passed = true)::int AS practice_completed
-		FROM course_subscription cs
+			(
+				COUNT(DISTINCT cea.id) FILTER (WHERE cea.run_type = 'submit') +
+				COUNT(DISTINCT prs.id)
+			)::int AS practice_submissions,
+			COUNT(DISTINCT spp.practice_id) FILTER (WHERE spp.status = 'completed')::int AS practice_completed,
+			COUNT(DISTINCT prs.id) FILTER (WHERE prs.status IN ('submitted', 'in_review'))::int AS practice_pending_review,
+			COUNT(DISTINCT prs.id) FILTER (WHERE prs.status = 'changes_requested')::int AS practice_changes_requested,
+			COALESCE((
+				SELECT SUM(pxa.xp)
+				FROM practice_xp_awards pxa
+				WHERE pxa.user_id = cs.user_id
+				  AND pxa.course_id = c.id
+			), 0)::int AS practice_xp_earned
+		FROM subscriptions cs
 		INNER JOIN courses c ON c.id = cs.course_id
 		LEFT JOIN course_modules cm ON cm.course_id = c.id
 		LEFT JOIN course_lessons cl ON cl.module_id = cm.id
 		LEFT JOIN user_course_points ucp ON ucp.lesson_id = cl.id AND ucp.user_id = cs.user_id
 		LEFT JOIN code_execution_attempts cea ON cea.course_id = c.id AND cea.user_id = cs.user_id
-		WHERE cs.user_id = ?
-		GROUP BY c.id, c.title, cs.started_at, cs.last_activity_at, cs.completed_at, cs.current_lesson_id
-		ORDER BY COALESCE(cs.last_activity_at, cs.started_at, c.created_at) DESC
+		LEFT JOIN student_practice_progress spp ON spp.course_id = c.id AND spp.student_id = cs.user_id
+		LEFT JOIN practice_review_submissions prs ON prs.course_id = c.id AND prs.student_id = cs.user_id
+		GROUP BY c.id, c.title, cs.user_id, cs.started_at, cs.last_activity_at, cs.completed_at, cs.current_lesson_id
+		ORDER BY COALESCE((
+			SELECT MAX(value)
+			FROM (VALUES
+				(cs.last_activity_at),
+				(MAX(cea.created_at)),
+				(MAX(spp.last_attempt_at)),
+				(MAX(prs.updated_at)),
+				(cs.started_at),
+				(c.created_at)
+			) AS activity(value)
+		), c.created_at) DESC
 	`, userID).Scan(&courseRows).Error; err != nil {
 		return nil, err
 	}

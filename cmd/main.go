@@ -13,6 +13,7 @@ import (
 	localehandler "curriculum-service/internal/http/handlers/locale"
 	modulehandler "curriculum-service/internal/http/handlers/module"
 	practicehandler "curriculum-service/internal/http/handlers/practice"
+	practicereviewhandler "curriculum-service/internal/http/handlers/practicereview"
 	progresshandler "curriculum-service/internal/http/handlers/progress"
 	quizhandler "curriculum-service/internal/http/handlers/quiz"
 	reviewhandler "curriculum-service/internal/http/handlers/review"
@@ -33,6 +34,7 @@ import (
 	localerepo "curriculum-service/internal/repo/postgres/locale"
 	modulerepo "curriculum-service/internal/repo/postgres/module"
 	practicerepo "curriculum-service/internal/repo/postgres/practice"
+	practicereviewrepo "curriculum-service/internal/repo/postgres/practicereview"
 	progressrepo "curriculum-service/internal/repo/postgres/progress"
 	quizrepo "curriculum-service/internal/repo/postgres/quiz"
 	reviewrepo "curriculum-service/internal/repo/postgres/review"
@@ -57,6 +59,7 @@ import (
 	localeusecase "curriculum-service/internal/usecase/locale"
 	moduleusecase "curriculum-service/internal/usecase/module"
 	practiceusecase "curriculum-service/internal/usecase/practice"
+	practicereviewusecase "curriculum-service/internal/usecase/practicereview"
 	progressusecase "curriculum-service/internal/usecase/progress"
 	quizusecase "curriculum-service/internal/usecase/quiz"
 	reviewusecase "curriculum-service/internal/usecase/review"
@@ -240,6 +243,10 @@ func main() {
 	practiceUseCase := practiceusecase.New(practiceRepo)
 	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
 
+	practiceReviewRepo := practicereviewrepo.NewRepo(db)
+	practiceReviewUseCase := practicereviewusecase.New(practiceReviewRepo)
+	practiceReviewHandler := practicereviewhandler.NewHandler(practiceReviewUseCase, jwtMgr)
+
 	codeAttemptRepo := codeattemptrepo.NewRepo(db)
 	codeAttemptUseCase := codeattemptusecase.New(codeAttemptRepo, codeRunnerClient, practiceUseCase)
 	codeAttemptHandler := codeattempthandler.NewHandler(codeAttemptUseCase, jwtMgr)
@@ -264,6 +271,7 @@ func main() {
 		CodeAttempt:      codeAttemptHandler,
 		StudentStats:     studentStatsHandler,
 		Practice:         practiceHandler,
+		PracticeReview:   practiceReviewHandler,
 	}
 
 	engine := router.New(
