@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build-and-push:
-    name: Build and push ${{ env.IMAGE_NAME }}
+    name: Build and push Curriculum Service
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +45,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    name: Deploy ${{ env.COMPOSE_SERVICE }} to server
+    name: Deploy Curriculum Service to server
     runs-on: ubuntu-latest
     needs: build-and-push
 
