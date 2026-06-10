@@ -50,6 +50,13 @@ func (u *UseCase) Run(ctx context.Context, req codeattemptdomain.RunRequest) (*c
 	if !strings.EqualFold(strings.TrimSpace(req.Language), strings.TrimSpace(practice.Language)) {
 		return nil, domain.ErrValidation
 	}
+	canStart, err := u.repo.CanStartPractice(ctx, req.UserID, practice.ID)
+	if err != nil {
+		return nil, err
+	}
+	if !canStart {
+		return nil, domain.ErrPracticePrerequisitesNotMet
+	}
 
 	started := time.Now()
 	runnerResult, err := u.runner.Run(ctx, practice.Language, req.Code)

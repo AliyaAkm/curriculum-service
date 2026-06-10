@@ -81,6 +81,8 @@ func writeError(c *gin.Context, err error) {
 		respond.Error(c, http.StatusBadRequest, "validation", "invalid request")
 	case errors.Is(err, domain.ErrPracticeAutoSubmitNotAllowed):
 		respond.Error(c, http.StatusBadRequest, "validation", domain.ErrPracticeAutoSubmitNotAllowed.Error())
+	case errors.Is(err, domain.ErrPracticePrerequisitesNotMet):
+		respond.Error(c, http.StatusConflict, "practice_prerequisites_not_met", domain.ErrPracticePrerequisitesNotMet.Error())
 	case errors.Is(err, domain.ErrPracticeNotFound):
 		respond.Error(c, http.StatusNotFound, "not_found", domain.ErrPracticeNotFound.Error())
 	default:

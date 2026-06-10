@@ -4,6 +4,7 @@ import (
 	"context"
 	"curriculum-service/internal/domain"
 	progressdomain "curriculum-service/internal/domain/progress"
+	"curriculum-service/internal/repo/postgres/lessoncompletion"
 	"math"
 	"time"
 
@@ -51,42 +52,8 @@ func (r *Repo) CompleteLesson(ctx context.Context, userID uuid.UUID, lessonID uu
 			return domain.ErrForbidden
 		}
 
-		insert := tx.WithContext(ctx).Exec(`
-			INSERT INTO user_course_points (
-				id, lesson_id, user_id, xp
-			)
-			SELECT ?, ?, ?, ?
-			WHERE NOT EXISTS (
-				SELECT 1
-				FROM user_course_points
-			WHERE user_id = ?
-			  AND lesson_id = ?
-			)
-		`, uuid.New(), lessonID, userID, info.XPReward, userID, lessonID)
-		if insert.Error != nil {
-			return insert.Error
-		}
-		newlyCompleted := insert.RowsAffected > 0
-
-		totalLessons, completedLessons, err := r.countCourseLessonsTx(ctx, tx, userID, info.CourseID)
+		newlyCompleted, err := lessoncompletion.MarkTheoryAndTryComplete(ctx, tx, userID, lessonID)
 		if err != nil {
-			return err
-		}
-
-		completedAtExpr := "completed_at"
-		if totalLessons > 0 && completedLessons >= totalLessons {
-			completedAtExpr = "COALESCE(completed_at, NOW())"
-		}
-
-		if err = tx.WithContext(ctx).Exec(`
-			UPDATE course_subscription
-			SET started_at = COALESCE(started_at, NOW()),
-			    last_activity_at = NOW(),
-			    current_lesson_id = ?,
-			    completed_at = `+completedAtExpr+`
-			WHERE user_id = ?
-			  AND course_id = ?
-		`, lessonID, userID, info.CourseID).Error; err != nil {
 			return err
 		}
 
@@ -227,24 +194,30 @@ func (r *Repo) getCourseProgressTx(ctx context.Context, tx *gorm.DB, userID uuid
 		return nil, err
 	}
 
+	theoryCompletedLessonIDs, err := r.getTheoryCompletedLessonIDsTx(ctx, tx, userID, courseID)
+	if err != nil {
+		return nil, err
+	}
+
 	passedQuizIDs, err := r.getPassedQuizIDsTx(ctx, tx, userID, courseID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &progressdomain.CourseProgress{
-		CourseID:           courseID,
-		UserID:             userID,
-		StartedAt:          subscription.StartedAt,
-		LastActivityAt:     subscription.LastActivityAt,
-		CompletedAt:        subscription.CompletedAt,
-		CurrentLessonID:    subscription.CurrentLessonID,
-		TotalLessons:       totalLessons,
-		CompletedLessons:   completedLessons,
-		ProgressPercent:    progressPercent(completedLessons, totalLessons),
-		CompletedLessonIDs: completedLessonIDs,
-		PassedQuizIDs:      passedQuizIDs,
-		Modules:            modules,
+		CourseID:                 courseID,
+		UserID:                   userID,
+		StartedAt:                subscription.StartedAt,
+		LastActivityAt:           subscription.LastActivityAt,
+		CompletedAt:              subscription.CompletedAt,
+		CurrentLessonID:          subscription.CurrentLessonID,
+		TotalLessons:             totalLessons,
+		CompletedLessons:         completedLessons,
+		ProgressPercent:          progressPercent(completedLessons, totalLessons),
+		TheoryCompletedLessonIDs: theoryCompletedLessonIDs,
+		CompletedLessonIDs:       completedLessonIDs,
+		PassedQuizIDs:            passedQuizIDs,
+		Modules:                  modules,
 	}, nil
 }
 
@@ -375,6 +348,32 @@ func (r *Repo) getCompletedLessonIDsTx(ctx context.Context, tx *gorm.DB, userID 
 		INNER JOIN course_lessons cl ON cl.id = up.lesson_id
 		INNER JOIN course_modules cm ON cm.id = cl.module_id
 		WHERE up.user_id = ?
+		  AND cm.course_id = ?
+		ORDER BY COALESCE(cm.position, 0) ASC, cl.position ASC, cl.created_at ASC
+	`, userID, courseID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]uuid.UUID, len(rows))
+	for i := range rows {
+		ids[i] = rows[i].ID
+	}
+
+	return ids, nil
+}
+
+func (r *Repo) getTheoryCompletedLessonIDsTx(ctx context.Context, tx *gorm.DB, userID uuid.UUID, courseID uuid.UUID) ([]uuid.UUID, error) {
+	var rows []struct {
+		ID uuid.UUID `gorm:"column:id"`
+	}
+	err := tx.WithContext(ctx).Raw(`
+		SELECT slp.lesson_id AS id
+		FROM student_lesson_progress slp
+		INNER JOIN course_lessons cl ON cl.id = slp.lesson_id
+		INNER JOIN course_modules cm ON cm.id = cl.module_id
+		WHERE slp.user_id = ?
+		  AND slp.theory_completed_at IS NOT NULL
 		  AND cm.course_id = ?
 		ORDER BY COALESCE(cm.position, 0) ASC, cl.position ASC, cl.created_at ASC
 	`, userID, courseID).Scan(&rows).Error

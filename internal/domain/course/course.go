@@ -33,6 +33,8 @@ type Course struct {
 	AuthorID           uuid.UUID      `gorm:"column:author_id"`
 	TopicID            uuid.UUID      `gorm:"column:topic_id"`
 	LearningOutcomes   pq.StringArray `gorm:"column:learning_outcomes;type:text[]"`
+	IsChecked          bool           `gorm:"column:is_checked"`
+	IsApproved         bool           `gorm:"column:is_approved"`
 
 	Status           status.Status
 	DurationCategory durationcategory.DurationCategory

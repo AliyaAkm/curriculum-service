@@ -7,9 +7,12 @@ import (
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"curriculum-service/internal/http/dto/durationcategory"
 	"curriculum-service/internal/http/dto/level"
+	"curriculum-service/internal/http/dto/pendingcheck"
+	"curriculum-service/internal/http/dto/reviewcourse"
 	"curriculum-service/internal/http/dto/status"
 	dtotag "curriculum-service/internal/http/dto/tag"
 	"curriculum-service/internal/http/dto/topic"
+	"curriculum-service/internal/http/middleware"
 	"curriculum-service/internal/http/respond"
 	"errors"
 	"github.com/gin-gonic/gin"
@@ -32,6 +35,32 @@ func (h *Handler) ListCourses(c *gin.Context) {
 	respond.JSON(c, http.StatusOK, convertCourses(result))
 }
 
+func (h *Handler) GetCourseReview(c *gin.Context) {
+	courseID, err := uuid.Parse(c.Param("course_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid course id"})
+		return
+	}
+
+	userID := middleware.GetUserID(h.jwtMgr, c)
+	if userID == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	resp, err := h.client.GetCourseReview(c.Request.Context(), courseID, *userID)
+	switch {
+	case errors.Is(err, domain.ErrCourseNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "course not found"})
+	case errors.Is(err, domain.ErrNotCourseOwner):
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not allowed to view this course review"})
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch course review"})
+	default:
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
 func (h *Handler) CreateCourse(c *gin.Context) {
 	request := dtocourse.CourseRequest{}
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -45,6 +74,77 @@ func (h *Handler) CreateCourse(c *gin.Context) {
 	}
 
 	respond.JSON(c, http.StatusOK, convertCourse(result))
+}
+
+func (h *Handler) GetPendingCheckCourses(c *gin.Context) {
+	courses, err := h.client.GetPendingCheckCourses(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch pending courses"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ToPendingCheckCourseResponses(courses))
+}
+
+func (h *Handler) ReviewCourse(c *gin.Context) {
+	courseID, err := uuid.Parse(c.Param("course_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid course id"})
+		return
+	}
+
+	var req reviewcourse.ReviewCourseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	userID := middleware.GetUserID(h.jwtMgr, c)
+	if userID == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	resp, err := h.client.ReviewCourse(c.Request.Context(), courseID, *userID, req)
+	switch {
+	case errors.Is(err, domain.ErrInvalidAction), errors.Is(err, domain.ErrCommentRequired):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	case errors.Is(err, domain.ErrCourseNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "course not found"})
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to review course"})
+	default:
+		c.JSON(http.StatusOK, resp)
+	}
+}
+
+func (h *Handler) ResubmitCourseForReview(c *gin.Context) {
+	courseID, err := uuid.Parse(c.Param("course_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid course id"})
+		return
+	}
+
+	userID := middleware.GetUserID(h.jwtMgr, c)
+	if userID == nil {
+		respond.JSON(c, http.StatusUnauthorized, "invalid user id")
+		return
+	}
+
+	resp, err := h.client.ResubmitCourseForReview(c.Request.Context(), courseID, *userID)
+	if err != nil {
+		respond.JSON(c, http.StatusBadRequest, "error")
+	}
+	switch {
+	case errors.Is(err, domain.ErrCourseNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "course not found"})
+	case errors.Is(err, domain.ErrNotCourseOwner):
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the author of this course"})
+	case err != nil:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resubmit course"})
+	default:
+		c.JSON(http.StatusOK, resp)
+	}
 }
 
 func (h *Handler) CreateSubscription(c *gin.Context) {
@@ -272,6 +372,24 @@ func convertCourse(resp *domaincourse.Course) dtocourse.Courses {
 		},
 		LearningOutcomes: resp.LearningOutcomes,
 	}
+}
+
+func ToPendingCheckCourseResponses(courses []domaincourse.Course) []pendingcheck.PendingCheckCourseResponse {
+	out := make([]pendingcheck.PendingCheckCourseResponse, 0, len(courses)) // make(...,0) => [] in JSON, never null
+	for _, c := range courses {
+		out = append(out, pendingcheck.PendingCheckCourseResponse{
+			ID:          c.ID,
+			Title:       c.Title,
+			Description: c.Description,
+			AuthorID:    c.AuthorID,
+			Category:    c.Topic.Name, // <-- swap to c.DurationCategory.Name if that's your "category"
+			Difficulty:  c.Level.Name, // <-- adjust field name if not .Name
+			//IsChecked:   c.Is_checked,
+			CreatedAt: c.CreatedAt,
+			UpdatedAt: c.UpdatedAt,
+		})
+	}
+	return out
 }
 
 func convertSubscriptionRequest(resp dtocourse.SubscriptionRequest) *domaincourse.Subscription {

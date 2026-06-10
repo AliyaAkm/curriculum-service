@@ -9,6 +9,7 @@ import (
 
 	"curriculum-service/internal/domain"
 	quizdomain "curriculum-service/internal/domain/quiz"
+	"curriculum-service/internal/repo/postgres/lessoncompletion"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -147,7 +148,14 @@ func (r *Repo) SaveQuizAttempt(ctx context.Context, userID uuid.UUID, quizID uui
 			return result.Error
 		}
 		if result.RowsAffected > 0 {
-			return updateCourseActivityByQuizTx(ctx, tx, userID, quizID)
+			if err := updateCourseActivityByQuizTx(ctx, tx, userID, quizID); err != nil {
+				return err
+			}
+			if isCorrect {
+				_, err := lessoncompletion.TryCompleteByQuiz(ctx, tx, userID, quizID)
+				return err
+			}
+			return nil
 		}
 
 		if err := tx.Exec(`
@@ -158,7 +166,14 @@ func (r *Repo) SaveQuizAttempt(ctx context.Context, userID uuid.UUID, quizID uui
 			return err
 		}
 
-		return updateCourseActivityByQuizTx(ctx, tx, userID, quizID)
+		if err := updateCourseActivityByQuizTx(ctx, tx, userID, quizID); err != nil {
+			return err
+		}
+		if isCorrect {
+			_, err := lessoncompletion.TryCompleteByQuiz(ctx, tx, userID, quizID)
+			return err
+		}
+		return nil
 	})
 }
 

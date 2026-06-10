@@ -180,17 +180,18 @@ func convertCourseProgress(src *progressdomain.CourseProgress) progressdto.Cours
 	}
 
 	return progressdto.CourseProgress{
-		CourseID:           src.CourseID,
-		UserID:             src.UserID,
-		StartedAt:          src.StartedAt,
-		LastActivityAt:     src.LastActivityAt,
-		CompletedAt:        src.CompletedAt,
-		CurrentLessonID:    src.CurrentLessonID,
-		TotalLessons:       src.TotalLessons,
-		CompletedLessons:   src.CompletedLessons,
-		ProgressPercent:    src.ProgressPercent,
-		CompletedLessonIDs: src.CompletedLessonIDs,
-		PassedQuizIDs:      src.PassedQuizIDs,
-		Modules:            modules,
+		CourseID:                 src.CourseID,
+		UserID:                   src.UserID,
+		StartedAt:                src.StartedAt,
+		LastActivityAt:           src.LastActivityAt,
+		CompletedAt:              src.CompletedAt,
+		CurrentLessonID:          src.CurrentLessonID,
+		TotalLessons:             src.TotalLessons,
+		CompletedLessons:         src.CompletedLessons,
+		ProgressPercent:          src.ProgressPercent,
+		TheoryCompletedLessonIDs: src.TheoryCompletedLessonIDs,
+		CompletedLessonIDs:       src.CompletedLessonIDs,
+		PassedQuizIDs:            src.PassedQuizIDs,
+		Modules:                  modules,
 	}
 }

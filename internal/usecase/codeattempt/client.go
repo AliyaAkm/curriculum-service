@@ -9,6 +9,7 @@ import (
 )
 
 type Repository interface {
+	CanStartPractice(ctx context.Context, userID uuid.UUID, practiceID uuid.UUID) (bool, error)
 	CreateAttempt(ctx context.Context, value codeattemptdomain.Attempt) (*codeattemptdomain.Attempt, error)
 }
 

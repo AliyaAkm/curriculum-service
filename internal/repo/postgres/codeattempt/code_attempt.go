@@ -4,10 +4,15 @@ import (
 	"context"
 	codeattemptdomain "curriculum-service/internal/domain/codeattempt"
 	practicereviewdomain "curriculum-service/internal/domain/practicereview"
+	"curriculum-service/internal/repo/postgres/lessoncompletion"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+func (r *Repo) CanStartPractice(ctx context.Context, userID uuid.UUID, practiceID uuid.UUID) (bool, error) {
+	return lessoncompletion.CanStartPractice(ctx, r.db, userID, practiceID)
+}
 
 func (r *Repo) CreateAttempt(ctx context.Context, value codeattemptdomain.Attempt) (*codeattemptdomain.Attempt, error) {
 	if value.ID == uuid.Nil {
@@ -66,37 +71,43 @@ func (r *Repo) CreateAttempt(ctx context.Context, value codeattemptdomain.Attemp
 			}
 		}
 
-		if value.RunType != codeattemptdomain.RunTypeSubmit || !value.Passed || value.XPReward <= 0 {
+		if value.RunType != codeattemptdomain.RunTypeSubmit || !value.Passed {
 			return updateCourseActivityByPracticeTx(ctx, tx, value)
 		}
 
-		result := tx.WithContext(ctx).Exec(`
-			INSERT INTO practice_xp_awards (
-				id,
-				user_id,
-				practice_id,
-				course_id,
-				lesson_id,
-				xp
-			)
-			VALUES (?, ?, ?, ?, ?, ?)
-			ON CONFLICT (user_id, practice_id) DO NOTHING
-		`, uuid.New(), value.UserID, practiceID, value.CourseID, value.LessonID, value.XPReward)
-		if result.Error != nil {
-			return result.Error
+		if value.XPReward > 0 {
+			result := tx.WithContext(ctx).Exec(`
+				INSERT INTO practice_xp_awards (
+					id,
+					user_id,
+					practice_id,
+					course_id,
+					lesson_id,
+					xp
+				)
+				VALUES (?, ?, ?, ?, ?, ?)
+				ON CONFLICT (user_id, practice_id) DO NOTHING
+			`, uuid.New(), value.UserID, practiceID, value.CourseID, value.LessonID, value.XPReward)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected > 0 {
+				value.XPAwarded = value.XPReward
+				if err := tx.WithContext(ctx).Exec(`
+					UPDATE code_execution_attempts
+					SET xp_awarded = ?
+					WHERE id = ?
+				`, value.XPAwarded, value.ID).Error; err != nil {
+					return err
+				}
+				if err := syncUserLevelByPracticeTx(ctx, tx, value.UserID); err != nil {
+					return err
+				}
+			}
 		}
-		if result.RowsAffected > 0 {
-			value.XPAwarded = value.XPReward
-			if err := tx.WithContext(ctx).Exec(`
-				UPDATE code_execution_attempts
-				SET xp_awarded = ?
-				WHERE id = ?
-			`, value.XPAwarded, value.ID).Error; err != nil {
-				return err
-			}
-			if err := syncUserLevelByPracticeTx(ctx, tx, value.UserID); err != nil {
-				return err
-			}
+
+		if _, err := lessoncompletion.TryCompleteByPractice(ctx, tx, value.UserID, practiceID); err != nil {
+			return err
 		}
 
 		return updateCourseActivityByPracticeTx(ctx, tx, value)

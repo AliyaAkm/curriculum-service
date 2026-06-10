@@ -5,6 +5,7 @@ import (
 	"curriculum-service/internal/domain/course"
 	"curriculum-service/internal/domain/module"
 	"curriculum-service/internal/domain/review"
+	"curriculum-service/internal/domain/reviewlog"
 	dtocourse "curriculum-service/internal/http/dto/course"
 	"github.com/google/uuid"
 )
@@ -19,6 +20,10 @@ type Repository interface {
 	DeleteCourse(ctx context.Context, id uuid.UUID) error
 	DeleteCoursePrice(ctx context.Context, id uuid.UUID) error
 	UpdateCourse(ctx context.Context, id uuid.UUID, value *course.Course) error
+	GetPendingCheckCourses(ctx context.Context) ([]course.Course, error)
+	ReviewCourse(ctx context.Context, log *reviewlog.CourseReviewLog, isApproved bool) error
+	SetCourseUnchecked(ctx context.Context, courseID uuid.UUID) error
+	GetLatestReviewLog(ctx context.Context, courseID uuid.UUID) (*reviewlog.CourseReviewLog, error)
 }
 type ReviewRepository interface {
 	GetAllReviewsByCourseID(ctx context.Context, courseID uuid.UUID) ([]review.CourseReview, error)

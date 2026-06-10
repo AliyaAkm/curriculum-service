@@ -21,6 +21,7 @@ import (
 	streakhandler "curriculum-service/internal/http/handlers/streak"
 	studentstatshandler "curriculum-service/internal/http/handlers/studentstats"
 	taghandler "curriculum-service/internal/http/handlers/tag"
+	teacherstatshandler "curriculum-service/internal/http/handlers/teacherstats"
 	topichandler "curriculum-service/internal/http/handlers/topic"
 	dictionarycache "curriculum-service/internal/repo/cache/dictionary"
 	achievementrepo "curriculum-service/internal/repo/postgres/achievement"
@@ -42,6 +43,7 @@ import (
 	streakrepo "curriculum-service/internal/repo/postgres/streak"
 	studentstatsrepo "curriculum-service/internal/repo/postgres/studentstats"
 	tagrepo "curriculum-service/internal/repo/postgres/tag"
+	teacherstatsrepo "curriculum-service/internal/repo/postgres/teacherstats"
 	topicrepo "curriculum-service/internal/repo/postgres/topic"
 	"curriculum-service/internal/service/aianalytics"
 	cacheclient "curriculum-service/internal/service/cache"
@@ -67,6 +69,7 @@ import (
 	streakusecase "curriculum-service/internal/usecase/streak"
 	studentstatsusecase "curriculum-service/internal/usecase/studentstats"
 	tagusecase "curriculum-service/internal/usecase/tag"
+	teacherstatsusecase "curriculum-service/internal/usecase/teacherstats"
 	topicusecase "curriculum-service/internal/usecase/topic"
 	"errors"
 	"github.com/go-playground/validator/v10"
@@ -239,6 +242,10 @@ func main() {
 	studentStatsUseCase := studentstatsusecase.New(studentStatsRepo, aiAnalyticsClient)
 	studentStatsHandler := studentstatshandler.NewHandler(studentStatsUseCase, jwtMgr)
 
+	teacherStatsRepo := teacherstatsrepo.NewRepo(db)
+	teacherStatsUseCase := teacherstatsusecase.New(teacherStatsRepo)
+	teacherStatsHandler := teacherstatshandler.NewHandler(teacherStatsUseCase, jwtMgr)
+
 	practiceRepo := practicerepo.NewRepo(db)
 	practiceUseCase := practiceusecase.New(practiceRepo)
 	practiceHandler := practicehandler.NewHandler(practiceUseCase, jwtMgr)
@@ -270,6 +277,7 @@ func main() {
 		Streak:           streakHandler,
 		CodeAttempt:      codeAttemptHandler,
 		StudentStats:     studentStatsHandler,
+		TeacherStats:     teacherStatsHandler,
 		Practice:         practiceHandler,
 		PracticeReview:   practiceReviewHandler,
 	}

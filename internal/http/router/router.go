@@ -20,6 +20,7 @@ import (
 	"curriculum-service/internal/http/handlers/streak"
 	"curriculum-service/internal/http/handlers/studentstats"
 	"curriculum-service/internal/http/handlers/tag"
+	"curriculum-service/internal/http/handlers/teacherstats"
 	"curriculum-service/internal/http/handlers/topic"
 
 	"github.com/gin-gonic/gin"
@@ -44,6 +45,7 @@ type Handler struct {
 	Streak           *streak.Handler
 	CodeAttempt      *codeattempt.Handler
 	StudentStats     *studentstats.Handler
+	TeacherStats     *teacherstats.Handler
 	Practice         *practice.Handler
 	PracticeReview   *practicereview.Handler
 }
@@ -141,6 +143,13 @@ func New(handler Handler, globalMiddlewares []gin.HandlerFunc) *gin.Engine {
 
 	// student analytics
 	r.GET("/student/statistics", handler.StudentStats.GetStatistics)
+	r.GET("/teacher/statistics", handler.TeacherStats.GetStatistics)
+
+	// review course content
+	r.GET("/courses/pending-check", handler.Course.GetPendingCheckCourses)
+	r.PATCH("/courses/:course_id/review", handler.Course.ReviewCourse)
+	r.PATCH("/courses/:course_id/resubmit-review", handler.Course.ResubmitCourseForReview)
+	r.GET("/courses/:course_id/review", handler.Course.GetCourseReview)
 
 	return r
 }

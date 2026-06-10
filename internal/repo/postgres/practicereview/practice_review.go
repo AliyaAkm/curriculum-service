@@ -5,6 +5,7 @@ import (
 	"curriculum-service/internal/domain"
 	practicedomain "curriculum-service/internal/domain/practice"
 	practicereviewdomain "curriculum-service/internal/domain/practicereview"
+	"curriculum-service/internal/repo/postgres/lessoncompletion"
 	"strings"
 
 	"github.com/google/uuid"
@@ -37,6 +38,13 @@ func (r *Repo) CreateSubmission(ctx context.Context, req practicereviewdomain.Cr
 		}
 		if !hasSubscription {
 			return domain.ErrCourseSubscriptionNotFound
+		}
+		canStart, err := lessoncompletion.CanStartPractice(ctx, tx, req.StudentID, req.PracticeID)
+		if err != nil {
+			return err
+		}
+		if !canStart {
+			return domain.ErrPracticePrerequisitesNotMet
 		}
 
 		completed, err := isPracticeCompletedTx(ctx, tx, req.StudentID, req.PracticeID)
@@ -254,28 +262,28 @@ func (r *Repo) ReviewSubmission(ctx context.Context, req practicereviewdomain.Re
 		if err != nil {
 			return err
 		}
-		if info.XPReward <= 0 {
-			return nil
+
+		if info.XPReward > 0 {
+			result := tx.WithContext(ctx).Exec(`
+				INSERT INTO practice_xp_awards (
+					id,
+					user_id,
+					practice_id,
+					course_id,
+					lesson_id,
+					xp,
+					submission_id
+				)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT (user_id, practice_id) DO NOTHING
+			`, uuid.New(), submission.StudentID, submission.PracticeID, submission.CourseID, submission.LessonID, info.XPReward, req.SubmissionID)
+			if result.Error != nil {
+				return result.Error
+			}
 		}
 
-		result := tx.WithContext(ctx).Exec(`
-			INSERT INTO practice_xp_awards (
-				id,
-				user_id,
-				practice_id,
-				course_id,
-				lesson_id,
-				xp,
-				submission_id
-			)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT (user_id, practice_id) DO NOTHING
-		`, uuid.New(), submission.StudentID, submission.PracticeID, submission.CourseID, submission.LessonID, info.XPReward, req.SubmissionID)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil
+		if _, err = lessoncompletion.TryCompleteByPractice(ctx, tx, submission.StudentID, submission.PracticeID); err != nil {
+			return err
 		}
 
 		return syncUserLevelTx(ctx, tx, submission.StudentID)

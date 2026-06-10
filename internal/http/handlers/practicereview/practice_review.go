@@ -349,6 +349,8 @@ func writeReviewError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, domain.ErrValidation), errors.Is(err, domain.ErrInvalidPracticeReviewStatus), errors.Is(err, domain.ErrPracticeManualReviewNotAllowed):
 		respond.Error(c, http.StatusBadRequest, "validation", err.Error())
+	case errors.Is(err, domain.ErrPracticePrerequisitesNotMet):
+		respond.Error(c, http.StatusConflict, "practice_prerequisites_not_met", err.Error())
 	case errors.Is(err, domain.ErrPracticeNotFound), errors.Is(err, domain.ErrPracticeSubmissionNotFound):
 		respond.Error(c, http.StatusNotFound, "not_found", err.Error())
 	case errors.Is(err, domain.ErrForbidden):
